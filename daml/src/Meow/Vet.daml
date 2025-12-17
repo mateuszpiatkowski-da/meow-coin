@@ -69,7 +69,6 @@ template VetConsultation
     choice VetConsultation_Decline : ()
       controller parties.pet.owner
       do
-
         pure ()
 
     choice VetConsultation_ChangeTime : ContractId VetConsultation

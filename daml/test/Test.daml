@@ -1,14 +1,81 @@
 module Test where
 
 import Daml.Script
-import MeowToken
+import Meow.Token
+import Meow.Transfer
+import DA.TextMap qualified as TM
+import DA.Time qualified as Time
+import Splice.Api.Token.MetadataV1 qualified as Meta
+import Splice.Api.Token.HoldingV1 qualified as Holding
+import Splice.Api.Token.TransferInstructionV1 qualified as Transfer
 
-test_token : Script (ContractId MeowToken)
 test_token = script do
-  dso <- allocateParty "DSO"
+  admin <- allocateParty "admin"
   owner <- allocateParty "Owner"
-  submit dso do
+  newOwner <- allocateParty "NewOwner"
+
+  submitMustFail admin do
     createCmd MeowToken with
-      dso
+      admin
       owner
-      amount = 10.0
+      meta = Meta.Metadata with values = TM.fromList [("wrongMeta", "1")]
+
+  submitMustFail owner do
+    createCmd MeowToken with
+      admin
+      owner
+      meta = Meta.Metadata with
+        values = TM.fromList
+          [ ("name", "Sam")
+          , ("species", "Cat")
+          , ("isoBirthDate", "2021-01-09T20:01:00Z")
+          ]
+
+  meowTokenCid <- submit admin do
+    createCmd MeowToken with
+      admin
+      owner
+      meta = Meta.Metadata with
+        values = TM.fromList
+          [ ("name", "Sam")
+          , ("species", "Cat")
+          , ("isoBirthDate", "2021-01-09T20:01:00Z")
+          ]
+
+  Some token <- queryContractId admin meowTokenCid
+  now <- getTime
+  let nowPlus24H = Time.addRelTime now (Time.hours 24)
+  let holdingView = view $ toInterface @Holding.Holding token
+  let instrumentId = holdingView.instrumentId
+
+  transferFactoryCid <- submitMulti [admin, owner] [] $
+    toInterfaceContractId @Transfer.TransferFactory <$> createCmd MeowTransferFactory
+      with
+        admin
+        tokenCid = meowTokenCid
+        tokenOwner = owner
+        transferData = Transfer.Transfer with
+          sender = token.owner
+          receiver = newOwner
+          amount = tokenAmount
+          instrumentId
+          requestedAt = now
+          executeBefore = nowPlus24H
+          inputHoldingCids = []
+          meta = Meta.emptyMetadata
+
+  submitMulti [admin, owner] [] do
+    exerciseCmd transferFactoryCid Transfer.TransferFactory_Transfer with
+      expectedAdmin = admin
+      transfer = Transfer.Transfer with
+        sender = token.owner
+        receiver = newOwner
+        amount = tokenAmount
+        instrumentId
+        requestedAt = now
+        executeBefore = nowPlus24H
+        inputHoldingCids = []
+        meta = Meta.emptyMetadata
+      extraArgs = Meta.ExtraArgs with
+        context = Meta.emptyChoiceContext
+        meta = Meta.emptyMetadata

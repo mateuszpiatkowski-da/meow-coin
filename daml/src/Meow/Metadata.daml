@@ -1,0 +1,38 @@
+module Meow.Metadata where
+
+import Splice.Api.Token.MetadataV1 qualified as Meta
+import DA.TextMap qualified as TM
+
+data Animal = Cat
+  | Dog
+  | Rabbit
+    deriving (Eq, Show, Enum)
+
+data MeowMeta = MeowMeta with
+  name : Text
+  species : Animal
+  isoBirthDate : Text
+    deriving (Eq, Show)
+
+toTextMap : MeowMeta -> TM.TextMap Text
+toTextMap meta = TM.fromList
+  [ ("name", meta.name)
+  , ("species", show meta.species)
+  , ("isoBirthDate", meta.isoBirthDate)
+  ]
+
+toMeowMeta : TM.TextMap Text -> Optional MeowMeta
+toMeowMeta tm = do
+  name <- TM.lookup "name" tm
+  speciesText <- TM.lookup "species" tm
+  species <- case speciesText of
+    "Cat" -> Some Cat
+    "Dog" -> Some Dog
+    "Rabbit" -> Some Rabbit
+    _ -> None
+  isoBirthDate <- TM.lookup "isoBirthDate" tm
+  Some MeowMeta with name, species, isoBirthDate
+
+meowSpliceMetadata : MeowMeta -> Meta.Metadata
+meowSpliceMetadata meta = Meta.Metadata with
+  values = toTextMap meta
