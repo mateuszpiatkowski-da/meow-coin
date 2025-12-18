@@ -3,47 +3,17 @@ module Test where
 import Daml.Script
 import Meow.Token
 import Meow.Transfer
-import DA.TextMap qualified as TM
 import DA.Time qualified as Time
 import Splice.Api.Token.MetadataV1 qualified as Meta
 import Splice.Api.Token.HoldingV1 qualified as Holding
 import Splice.Api.Token.TransferInstructionV1 qualified as Transfer
 import DA.Date qualified as Date
+import Fixture.Token (TokenFixture(..), setupTokenTest)
 
 test_token = script do
-  admin <- allocateParty "admin"
-  owner <- allocateParty "Owner"
-  newOwner <- allocateParty "NewOwner"
+  TokenFixture{admin, oldOwner, newOwner, tokenCid} <- setupTokenTest
 
-  submitMustFail admin do
-    createCmd MeowToken with
-      admin
-      owner
-      meta = Meta.Metadata with values = TM.fromList [("wrongMeta", "1")]
-
-  submitMustFail owner do
-    createCmd MeowToken with
-      admin
-      owner
-      meta = Meta.Metadata with
-        values = TM.fromList
-          [ ("name", "Sam")
-          , ("species", "Cat")
-          , ("isoBirthDate", "2021-01-09T20:01:00Z")
-          ]
-
-  meowTokenCid <- submit admin do
-    createCmd MeowToken with
-      admin
-      owner
-      meta = Meta.Metadata with
-        values = TM.fromList
-          [ ("name", "Sam")
-          , ("species", "Cat")
-          , ("isoBirthDate", "2021-01-09T20:01:00Z")
-          ]
-
-  Some token <- queryContractId admin meowTokenCid
+  Some token <- queryContractId admin tokenCid
 
   -- Set ledger time to a realistic value (e.g., 2024-01-01)
   setTime (Time.time (Date.date 2024 Date.Jan 1) 0 0 0)
@@ -51,7 +21,7 @@ test_token = script do
   let nowPlus24H = Time.addRelTime now (Time.hours 24 + Time.minutes 25)
   let holdingView = view $ toInterface @Holding.Holding token
   let instrumentId = holdingView.instrumentId
-  let holdingCid = toInterfaceContractId @Holding.Holding meowTokenCid
+  let holdingCid = toInterfaceContractId @Holding.Holding tokenCid
 
   transferFactoryCid <- submit admin $
     toInterfaceContractId @Transfer.TransferFactory <$> createCmd MeowTransferFactory
@@ -59,11 +29,11 @@ test_token = script do
         admin
 
   -- Extract the transfer instruction contract ID from the result
-  result <- submitMulti [admin, owner] [] do
+  result <- submitMulti [admin, oldOwner] [] do
     exerciseCmd transferFactoryCid Transfer.TransferFactory_Transfer with
       expectedAdmin = admin
       transfer = Transfer.Transfer with
-        sender = token.owner
+        sender = oldOwner
         receiver = newOwner
         amount = tokenAmount
         instrumentId

@@ -1,0 +1,38 @@
+module Fixture.Token where
+
+import Meow.Token
+import Splice.Api.Token.MetadataV1 qualified as Meta
+import DA.TextMap qualified as TM
+import Daml.Script
+
+-- Reusable test fixture for token creation
+data TokenFixture = TokenFixture with
+    admin : Party
+    oldOwner : Party
+    newOwner : Party
+    tokenCid : ContractId MeowToken
+  deriving (Eq, Show)
+
+-- Helper function to create a token with customizable metadata
+createTestToken : Party -> Party -> [(Text, Text)] -> Script (ContractId MeowToken)
+createTestToken admin owner metadataValues = do
+  submit admin do
+    createCmd MeowToken with
+      admin
+      owner
+      meta = Meta.Metadata with values = TM.fromList metadataValues
+
+-- Standard test setup with default values
+setupTokenTest : Script TokenFixture
+setupTokenTest = do
+  admin <- allocateParty "admin"
+  newOwner <- allocateParty "NewOwner"
+  oldOwner <- allocateParty "OldOwner"
+
+  tokenCid <- createTestToken admin oldOwner
+    [ ("name", "Sam")
+    , ("species", "Cat")
+    , ("isoBirthDate", "2021-01-09T20:01:00Z")
+    ]
+
+  pure TokenFixture with admin; oldOwner; newOwner; tokenCid
