@@ -1,6 +1,6 @@
 module Meow.Vet where
 
-import Meow.Token as MeowToken
+import Meow.Holding
 
 -- UTILS
 assertExpirationTime : Time -> Text -> Update ()

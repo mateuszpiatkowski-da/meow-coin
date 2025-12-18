@@ -10,7 +10,7 @@ import Splice.Api.Token.TransferInstructionV1 qualified as Transfer
 import DA.Date qualified as Date
 import Fixture.Token (TokenFixture(..), setupTokenTest)
 
-test_token = script do
+test_transfer_token = script do
   TokenFixture{admin, oldOwner, newOwner, tokenCid} <- setupTokenTest
 
   Some token <- queryContractId admin tokenCid

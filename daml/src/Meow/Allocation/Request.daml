@@ -1,0 +1,3 @@
+module Allocation.Request where
+
+import Splice.Api.Token.AllocationRequestV1 qualified as AllReq

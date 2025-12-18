@@ -1,4 +1,4 @@
-module Meow.Token where
+module Meow.Holding where
 
 import Splice.Api.Token.HoldingV1 qualified as Holding
 import Splice.Api.Token.MetadataV1 qualified as Meta

@@ -1,0 +1,3 @@
+module Allocation.Instruction where
+
+import Splice.Api.Token.AllocationInstructionV1 qualified as AllInstr
