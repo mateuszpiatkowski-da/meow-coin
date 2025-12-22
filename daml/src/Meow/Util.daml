@@ -1,0 +1,5 @@
+module Meow.Util where
+
+
+assertExpectedAdmin : (CanAssert m) => Party -> Party -> m ()
+assertExpectedAdmin admin expectedAdmin = assertMsg "Expected admin does not match" (admin == expectedAdmin)

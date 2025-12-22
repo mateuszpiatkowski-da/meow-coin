@@ -1,3 +1,66 @@
-module Allocation.Instruction where
+module Meow.Allocation.Instruction where
 
-import Splice.Api.Token.AllocationInstructionV1 qualified as AllInstr
+import Splice.Api.Token.AllocationInstructionV1 qualified as AllocInstr
+import Splice.Api.Token.MetadataV1 qualified as Meta
+import DA.Map qualified as Map
+import Meow.Util qualified as Util
+-- import DA.Foldable qualified as Foldable
+
+template MeowAllocationInstructionFactory
+  with
+    admin : Party
+  where
+    signatory admin
+
+    interface instance AllocInstr.AllocationFactory for MeowAllocationInstructionFactory where
+      view = AllocInstr.AllocationFactoryView with
+        admin
+        meta = Meta.emptyMetadata
+
+      allocationFactory_allocateImpl this allocateRequest = do
+        Util.assertExpectedAdmin admin allocateRequest.expectedAdmin
+
+        -- TODO: archive the cids after completion of alloc
+        -- Foldable.forA_ allocateRequest.inputHoldingCids archive
+
+        meowAllocInstructionCid <- create MeowAllocationInstruction with
+          view = AllocInstr.AllocationInstructionView with
+            allocation = allocateRequest.allocation
+            requestedAt = allocateRequest.requestedAt
+            inputHoldingCids = allocateRequest.inputHoldingCids
+            meta = Meta.emptyMetadata
+            pendingActions = Map.empty
+            originalInstructionCid = None -- TODO
+
+        let allocationInstructionCid = toInterfaceContractId @AllocInstr.AllocationInstruction meowAllocInstructionCid
+
+        pure AllocInstr.AllocationInstructionResult with
+          output = AllocInstr.AllocationInstructionResult_Pending with
+            allocationInstructionCid
+          senderChangeCids = [] -- TODO
+          meta = Meta.emptyMetadata
+
+      allocationFactory_publicFetchImpl this fetchRequest = do
+        pure AllocInstr.AllocationFactoryView with
+          admin
+          meta = Meta.emptyMetadata
+
+template MeowAllocationInstruction
+  with
+    view : AllocInstr.AllocationInstructionView
+  where
+    signatory view.allocation.settlement.executor
+    observer Map.keys view.pendingActions
+
+    interface instance AllocInstr.AllocationInstruction for MeowAllocationInstruction where
+      view = view
+
+      allocationInstruction_withdrawImpl this withdrawRequest = do
+        pure AllocInstr.AllocationInstructionResult with
+          output = AllocInstr.AllocationInstructionResult_Failed
+          senderChangeCids = [] -- TODO
+          meta = Meta.emptyMetadata
+
+      allocationInstruction_updateImpl this updateRequest = do
+        abort "Not supported"
+

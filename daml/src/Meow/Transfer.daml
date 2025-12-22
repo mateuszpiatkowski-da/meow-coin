@@ -1,10 +1,11 @@
 module Meow.Transfer where
 
 import Meow.Holding
-import Meow.Metadata
+import Splice.Api.Token.MetadataV1 qualified as Meta
 import Splice.Api.Token.TransferInstructionV1 qualified as Transfer
 import Splice.Api.Token.HoldingV1 qualified as Holding
 import DA.List qualified as List
+import Meow.Util qualified as Util
 
 -- UTILS
 
@@ -23,10 +24,10 @@ template MeowTransferFactory
     interface instance Transfer.TransferFactory for MeowTransferFactory where
       view = Transfer.TransferFactoryView with
         admin
-        meta = meowMeta
+        meta = Meta.emptyMetadata
 
       transferFactory_transferImpl self transferRequest = do
-        assertMsg "Expected admin does not match" (transferRequest.expectedAdmin == admin)
+        Util.assertExpectedAdmin admin transferRequest.expectedAdmin
         assertMsg "executeBefore must be after requestedAt" (transferRequest.transfer.executeBefore > transferRequest.transfer.requestedAt)
 
         concreteTransferInstructionCid <- create MeowTransferInstruction with
@@ -57,13 +58,13 @@ template MeowTransferFactory
           output = Transfer.TransferInstructionResult_Pending with
             transferInstructionCid
           senderChangeCids
-          meta = meowMeta
+          meta = Meta.emptyMetadata
 
-      transferFactory_publicFetchImpl self fetch = do
-        assertMsg "Expected admin does not match" (fetch.expectedAdmin == admin)
+      transferFactory_publicFetchImpl self fetchRequest = do
+        assertMsg "Expected admin does not match" (fetchRequest.expectedAdmin == admin)
         pure Transfer.TransferFactoryView with
           admin
-          meta = meowMeta
+          meta = Meta.emptyMetadata
 
 template MeowTransferInstruction
   with
@@ -79,9 +80,9 @@ template MeowTransferInstruction
         transfer
         status
         originalInstructionCid = None
-        meta = meowMeta
+        meta = Meta.emptyMetadata
 
-      transferInstruction_acceptImpl self accept = do
+      transferInstruction_acceptImpl self _ = do
         -- Status must be set to 'TransferPendingReceiverAcceptance' before a transfer can be executed
         assertTransferStatus status
 
@@ -109,22 +110,22 @@ template MeowTransferInstruction
           output = Transfer.TransferInstructionResult_Completed with
             receiverHoldingCids = [receiverTokenCid]
           senderChangeCids = []
-          meta = meowMeta
+          meta = Meta.emptyMetadata
 
-      transferInstruction_rejectImpl self reject = do
+      transferInstruction_rejectImpl self _ = do
         -- Status must be set to 'TransferPendingReceiverAcceptance' before a transfer can be executed
         assertTransferStatus status
 
         pure Transfer.TransferInstructionResult with
           output = Transfer.TransferInstructionResult_Failed
           senderChangeCids = []
-          meta = meowMeta
+          meta = Meta.emptyMetadata
 
       transferInstruction_withdrawImpl self withdraw = do
         pure Transfer.TransferInstructionResult with
           output = Transfer.TransferInstructionResult_Failed
           senderChangeCids = []
-          meta = meowMeta
+          meta = Meta.emptyMetadata
 
       transferInstruction_updateImpl self update = do
         abort "Cannot update a transfer instruction"
