@@ -1,7 +1,6 @@
 module Test where
 
 import Daml.Script
-import Meow.Token
 import Meow.Transfer
 import DA.Time qualified as Time
 import Splice.Api.Token.MetadataV1 qualified as Meta
@@ -11,7 +10,7 @@ import DA.Date qualified as Date
 import Fixture.Token (TokenFixture(..), setupTokenTest)
 
 test_transfer_token = script do
-  TokenFixture{admin, oldOwner, newOwner, tokenCid} <- setupTokenTest
+  TokenFixture{admin, oldOwner, newOwner, tokenCid} <- setupTokenTest 100.0
 
   Some token <- queryContractId admin tokenCid
 
@@ -35,7 +34,7 @@ test_transfer_token = script do
       transfer = Transfer.Transfer with
         sender = oldOwner
         receiver = newOwner
-        amount = tokenAmount
+        amount = 57.756
         instrumentId
         requestedAt = now
         executeBefore = nowPlus24H

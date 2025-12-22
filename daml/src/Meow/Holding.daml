@@ -1,34 +1,24 @@
 module Meow.Holding where
 
 import Splice.Api.Token.HoldingV1 qualified as Holding
-import Splice.Api.Token.MetadataV1 qualified as Meta
 import Meow.Metadata
-import DA.Optional qualified as Opt
-
-tokenAmount : Decimal
-tokenAmount = 1.0 -- We cannot split the pet we own
 
 template MeowToken
   with
     admin : Party
     owner : Party
-    meta : Meta.Metadata
+    amount : Decimal
   where
     signatory admin
     observer owner
 
-
-    ensure Opt.isSome (toMeowMeta meta.values)
-
     interface instance Holding.Holding for MeowToken where
-      view =
-        let meowMetaValue = Opt.fromSome (toMeowMeta meta.values)
-        in Holding.HoldingView with
+      view = Holding.HoldingView with
           owner
           instrumentId = Holding.InstrumentId
             with
               admin
-              id = meowMetaValue.name <> "-" <> meowMetaValue.isoBirthDate
-          amount = tokenAmount
+              id = "meow-coin"
+          amount
           lock = None
-          meta
+          meta = meowMeta

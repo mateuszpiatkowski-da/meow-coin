@@ -1,16 +1,16 @@
 module Meow.Transfer where
 
 import Meow.Holding
+import Meow.Metadata
 import Splice.Api.Token.TransferInstructionV1 qualified as Transfer
 import Splice.Api.Token.HoldingV1 qualified as Holding
-import Splice.Api.Token.MetadataV1 qualified as Meta
 import DA.List qualified as List
 
 -- UTILS
 
 assertTransferStatus : Transfer.TransferInstructionStatus -> Update ()
 assertTransferStatus status = do
-    assertMsg "Transfer instruction must be pending receiver acceptance" (status == Transfer.TransferPendingReceiverAcceptance)
+  assertMsg "Transfer instruction must be pending receiver acceptance" (status == Transfer.TransferPendingReceiverAcceptance)
 
 -- TEMPLATES
 
@@ -23,7 +23,7 @@ template MeowTransferFactory
     interface instance Transfer.TransferFactory for MeowTransferFactory where
       view = Transfer.TransferFactoryView with
         admin
-        meta = Meta.emptyMetadata
+        meta = meowMeta
 
       transferFactory_transferImpl self transferRequest = do
         assertMsg "Expected admin does not match" (transferRequest.expectedAdmin == admin)
@@ -33,28 +33,43 @@ template MeowTransferFactory
           admin
           transfer = transferRequest.transfer
           status = Transfer.TransferPendingReceiverAcceptance
-          meta = Meta.emptyMetadata
 
         let transferInstructionCid = toInterfaceContractId @Transfer.TransferInstruction concreteTransferInstructionCid
+
+        -- check if the sender sends too much
+        senderInputAmounts <- mapA (\holdingCid -> do
+          holdingView <- view <$> fetch holdingCid
+          pure holdingView.amount) transferRequest.transfer.inputHoldingCids
+        let senderInputAmountSum : Decimal = sum senderInputAmounts
+        let senderChange = senderInputAmountSum - transferRequest.transfer.amount
+
+        -- create change for sender (if needed)
+        senderChangeCids <- if senderChange > 0.0 then do
+          concreteChangeCid <- create MeowToken with
+            admin
+            owner = transferRequest.transfer.sender
+            amount = senderChange
+          let changeHoldingCid = toInterfaceContractId @Holding.Holding concreteChangeCid
+          pure [changeHoldingCid]
+          else pure []
 
         pure Transfer.TransferInstructionResult with
           output = Transfer.TransferInstructionResult_Pending with
             transferInstructionCid
-          senderChangeCids = [] -- we don't send back the change to the sender as the pet ownership is not divisible - we send it all to the receiver
-          meta = Meta.emptyMetadata
+          senderChangeCids
+          meta = meowMeta
 
       transferFactory_publicFetchImpl self fetch = do
         assertMsg "Expected admin does not match" (fetch.expectedAdmin == admin)
         pure Transfer.TransferFactoryView with
           admin
-          meta = Meta.emptyMetadata
+          meta = meowMeta
 
 template MeowTransferInstruction
   with
     admin : Party
     transfer : Transfer.Transfer
     status : Transfer.TransferInstructionStatus
-    meta : Meta.Metadata
   where
     signatory admin
     observer transfer.receiver, transfer.sender
@@ -64,7 +79,7 @@ template MeowTransferInstruction
         transfer
         status
         originalInstructionCid = None
-        meta
+        meta = meowMeta
 
       transferInstruction_acceptImpl self accept = do
         -- Status must be set to 'TransferPendingReceiverAcceptance' before a transfer can be executed
@@ -76,14 +91,14 @@ template MeowTransferInstruction
 
         let senderTokenCid = List.head transfer.inputHoldingCids
 
-        -- Fetch the sender's token to get its metadata
+        -- Fetch the sender's token
         senderTokenView <- view <$> fetch senderTokenCid
 
         -- Create the MeowToken for the receiver
         concreteReceiverTokenCid <- create MeowToken with
           admin
           owner = transfer.receiver
-          meta = senderTokenView.meta
+          amount = transfer.amount
 
         let receiverTokenCid = toInterfaceContractId @Holding.Holding concreteReceiverTokenCid
 
@@ -94,7 +109,7 @@ template MeowTransferInstruction
           output = Transfer.TransferInstructionResult_Completed with
             receiverHoldingCids = [receiverTokenCid]
           senderChangeCids = []
-          meta = Meta.emptyMetadata
+          meta = meowMeta
 
       transferInstruction_rejectImpl self reject = do
         -- Status must be set to 'TransferPendingReceiverAcceptance' before a transfer can be executed
@@ -103,13 +118,13 @@ template MeowTransferInstruction
         pure Transfer.TransferInstructionResult with
           output = Transfer.TransferInstructionResult_Failed
           senderChangeCids = []
-          meta = Meta.emptyMetadata
+          meta = meowMeta
 
       transferInstruction_withdrawImpl self withdraw = do
         pure Transfer.TransferInstructionResult with
           output = Transfer.TransferInstructionResult_Failed
           senderChangeCids = []
-          meta = Meta.emptyMetadata
+          meta = meowMeta
 
       transferInstruction_updateImpl self update = do
         abort "Cannot update a transfer instruction"
