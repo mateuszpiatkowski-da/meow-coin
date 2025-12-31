@@ -3,7 +3,6 @@ module Meow.Transfer where
 import Meow.Holding
 import Splice.Api.Token.MetadataV1 qualified as Meta
 import Splice.Api.Token.TransferInstructionV1 qualified as Transfer
-import Splice.Api.Token.HoldingV1 qualified as Holding
 import DA.List qualified as List
 import Meow.Util qualified as Util
 
@@ -38,11 +37,7 @@ template MeowTransferFactory
         let transferInstructionCid = toInterfaceContractId @Transfer.TransferInstruction concreteTransferInstructionCid
 
         -- check if the sender sends too much
-        senderInputAmounts <- mapA (\holdingCid -> do
-          holdingView <- view <$> fetch holdingCid
-          pure holdingView.amount) transferRequest.transfer.inputHoldingCids
-        let senderInputAmountSum : Decimal = sum senderInputAmounts
-        let senderChange = senderInputAmountSum - transferRequest.transfer.amount
+        senderChange <- Util.calculateSenderChange transferRequest.transfer.inputHoldingCids transferRequest.transfer.amount
 
         -- create change for sender (if needed)
         senderChangeCids <- if senderChange > 0.0 then do
@@ -50,7 +45,7 @@ template MeowTransferFactory
             admin
             owner = transferRequest.transfer.sender
             amount = senderChange
-          let changeHoldingCid = toInterfaceContractId @Holding.Holding concreteChangeCid
+          let changeHoldingCid = Util.meowTokenToHoldingCid concreteChangeCid
           pure [changeHoldingCid]
           else pure []
 
@@ -101,7 +96,7 @@ template MeowTransferInstruction
           owner = transfer.receiver
           amount = transfer.amount
 
-        let receiverTokenCid = toInterfaceContractId @Holding.Holding concreteReceiverTokenCid
+        let receiverTokenCid = Util.meowTokenToHoldingCid concreteReceiverTokenCid
 
         -- Archive sender's token
         archive senderTokenCid

@@ -2,11 +2,18 @@ module Meow.Allocation.Allocation where
 
 import Splice.Api.Token.AllocationV1 qualified as Alloc
 import Splice.Api.Token.MetadataV1 qualified as Meta
+import Meow.Holding
+import Splice.Api.Token.HoldingV1 qualified as Holding
+import Meow.Util qualified as Util
+
+toHoldingCids : [ContractId MeowToken] -> [ContractId Holding.Holding]
+toHoldingCids = map Util.meowTokenToHoldingCid
 
 template MeowAllocation
   with
     settlement : Alloc.SettlementInfo
     transferLeg : Alloc.TransferLeg
+    senderHoldingCids : [ContractId MeowToken]
   where
     signatory settlement.executor
     observer transferLeg.sender, transferLeg.receiver
@@ -15,24 +22,43 @@ template MeowAllocation
       view = Alloc.AllocationView with
         allocation = Alloc.AllocationSpecification with
           settlement
-          transferLegId = "" -- TODO
+          transferLegId = show transferLeg.sender <> "->" <> show transferLeg.receiver
           transferLeg
-        holdingCids = [] -- TODO
+        holdingCids = toHoldingCids senderHoldingCids
         meta = Meta.emptyMetadata
 
       allocation_executeTransferImpl this executeRequest = do
+        now <- getTime
+        assertMsg "Settlement deadline has passed" (settlement.settleBefore >= now)
+
+        receiverHoldingCid <- create MeowToken with
+          admin = settlement.executor
+          owner = transferLeg.receiver
+          amount = transferLeg.amount
+
+        senderChangeAmount <- Util.calculateSenderChange (toHoldingCids senderHoldingCids) transferLeg.amount
+
+        senderHoldingCids <- if senderChangeAmount > 0.0 then do
+          meowCid <- create MeowToken with
+            owner = transferLeg.sender
+            admin = settlement.executor
+            amount = senderChangeAmount
+          let holdingCid = Util.meowTokenToHoldingCid meowCid
+          pure [holdingCid]
+          else pure []
+
         pure Alloc.Allocation_ExecuteTransferResult with
-          senderHoldingCids = [] -- TODO
-          receiverHoldingCids = [] -- TODO
+          senderHoldingCids
+          receiverHoldingCids = [Util.meowTokenToHoldingCid receiverHoldingCid]
           meta = Meta.emptyMetadata
 
       allocation_cancelImpl this cancelRequest = do
         pure Alloc.Allocation_CancelResult with
-          senderHoldingCids = [] -- TODO
+          senderHoldingCids = toHoldingCids senderHoldingCids
           meta = Meta.emptyMetadata
 
       allocation_withdrawImpl this withdrawRequest = do
         pure Alloc.Allocation_WithdrawResult with
-          senderHoldingCids = [] -- TODO
+          senderHoldingCids = toHoldingCids senderHoldingCids
           meta = Meta.emptyMetadata
 
