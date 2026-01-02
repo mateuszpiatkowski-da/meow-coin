@@ -28,7 +28,7 @@ test_transfer_token = script do
         admin
 
   -- Extract the transfer instruction contract ID from the result
-  result <- submitMulti [admin, oldOwner] [] do
+  result <- submit admin do
     exerciseCmd transferFactoryCid Transfer.TransferFactory_Transfer with
       expectedAdmin = admin
       transfer = Transfer.Transfer with
@@ -47,7 +47,7 @@ test_transfer_token = script do
   let Transfer.TransferInstructionResult_Pending{transferInstructionCid} = result.output
 
   -- Now accept the transfer as the receiver
-  submitMulti [admin, newOwner] [] do
+  submit admin do
     exerciseCmd transferInstructionCid Transfer.TransferInstruction_Accept with
       extraArgs = Meta.ExtraArgs with
         context = Meta.emptyChoiceContext

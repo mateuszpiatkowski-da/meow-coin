@@ -3,8 +3,12 @@ module Meow.Allocation.Instruction where
 import Splice.Api.Token.AllocationInstructionV1 qualified as AllocInstr
 import Splice.Api.Token.MetadataV1 qualified as Meta
 import DA.Map qualified as Map
+import DA.TextMap qualified as TextMap
 import Meow.Util qualified as Util
--- import DA.Foldable qualified as Foldable
+import Meow.Allocation.Allocation
+import Splice.Api.Token.AllocationV1 qualified as Alloc
+import DA.Optional qualified as Optional
+import DA.Text qualified as Text
 
 template MeowAllocationInstructionFactory
   with
@@ -20,24 +24,21 @@ template MeowAllocationInstructionFactory
       allocationFactory_allocateImpl this allocateRequest = do
         Util.assertExpectedAdmin admin allocateRequest.expectedAdmin
 
-        -- TODO: archive the cids after completion of alloc
-        -- Foldable.forA_ allocateRequest.inputHoldingCids archive
-
         meowAllocInstructionCid <- create MeowAllocationInstruction with
           view = AllocInstr.AllocationInstructionView with
             allocation = allocateRequest.allocation
             requestedAt = allocateRequest.requestedAt
             inputHoldingCids = allocateRequest.inputHoldingCids
             meta = Meta.emptyMetadata
-            pendingActions = Map.empty
-            originalInstructionCid = None -- TODO
+            pendingActions = Map.fromList [(admin, "Needs to accept the instruction in order to create an allocation"), (allocateRequest.allocation.transferLeg.sender, "Can update the allocation instruction until it is accepted by the executor"), (allocateRequest.allocation.transferLeg.receiver, "Can update the allocation instruction until it is accepted by the executor")]
+            originalInstructionCid = None
 
         let allocationInstructionCid = toInterfaceContractId @AllocInstr.AllocationInstruction meowAllocInstructionCid
 
         pure AllocInstr.AllocationInstructionResult with
           output = AllocInstr.AllocationInstructionResult_Pending with
             allocationInstructionCid
-          senderChangeCids = [] -- TODO
+          senderChangeCids = [] -- we calculate it at later stages
           meta = Meta.emptyMetadata
 
       allocationFactory_publicFetchImpl this fetchRequest = do
@@ -58,9 +59,40 @@ template MeowAllocationInstruction
       allocationInstruction_withdrawImpl this withdrawRequest = do
         pure AllocInstr.AllocationInstructionResult with
           output = AllocInstr.AllocationInstructionResult_Failed
-          senderChangeCids = [] -- TODO
+          senderChangeCids = []
           meta = Meta.emptyMetadata
 
       allocationInstruction_updateImpl this updateRequest = do
-        abort "Not supported"
+        if updateRequest.extraActors == [] then do
+          meowAllocationCid <- create MeowAllocation with
+            settlement = view.allocation.settlement
+            transferLeg = view.allocation.transferLeg
+            senderHoldingCids = view.inputHoldingCids
 
+          let allocationCid = toInterfaceContractId @Alloc.Allocation meowAllocationCid
+
+          pure AllocInstr.AllocationInstructionResult with
+            output = AllocInstr.AllocationInstructionResult_Completed with
+              allocationCid
+            senderChangeCids = []
+            meta = Meta.emptyMetadata
+        else do
+          assertMsg "Both sender and receiver must be the controllers of this choice" (any (`elem` updateRequest.extraActors) [view.allocation.transferLeg.sender, view.allocation.transferLeg.receiver])
+          let newAmount = case TextMap.lookup "amount" updateRequest.extraArgs.context.values of
+                Some (Meta.AV_Text amountStr) -> Optional.fromSomeNote "Invalid amount" (Text.parseNumeric @10 amountStr)
+                _ -> view.allocation.transferLeg.amount
+          let updatedAllocation = view.allocation with
+                transferLeg = view.allocation.transferLeg with
+                  amount = newAmount
+          let updatedView = view with
+              allocation = updatedAllocation
+              originalInstructionCid = Some (toInterfaceContractId @AllocInstr.AllocationInstruction this)
+          meowAllocationInstructionCid <- create MeowAllocationInstruction with
+            view = updatedView
+          let allocationInstructionCid = toInterfaceContractId @AllocInstr.AllocationInstruction meowAllocationInstructionCid
+
+          pure AllocInstr.AllocationInstructionResult with
+            output = AllocInstr.AllocationInstructionResult_Pending with
+              allocationInstructionCid
+            senderChangeCids = []
+            meta = Meta.emptyMetadata

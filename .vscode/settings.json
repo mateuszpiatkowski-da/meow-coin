@@ -3,5 +3,11 @@
     "**/.daml/unpacked-dars/**": true
   },
   "daml.useDPMWhenAvailable": true,
-  "cSpell.words": ["Daml"]
+  "cSpell.words": ["Daml"],
+  "editor.wordWrap": "on",
+  "editor.wordWrapColumn": 120,
+  "[daml]": {
+    "editor.wordWrap": "on",
+    "editor.wordWrapColumn": 120
+  }
 }

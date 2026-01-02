@@ -5,6 +5,7 @@ import Splice.Api.Token.MetadataV1 qualified as Meta
 import Meow.Holding
 import Splice.Api.Token.HoldingV1 qualified as Holding
 import Meow.Util qualified as Util
+import DA.Foldable qualified as Foldable
 
 toHoldingCids : [ContractId MeowToken] -> [ContractId Holding.Holding]
 toHoldingCids = map Util.meowTokenToHoldingCid
@@ -13,7 +14,7 @@ template MeowAllocation
   with
     settlement : Alloc.SettlementInfo
     transferLeg : Alloc.TransferLeg
-    senderHoldingCids : [ContractId MeowToken]
+    senderHoldingCids : [ContractId Holding.Holding]
   where
     signatory settlement.executor
     observer transferLeg.sender, transferLeg.receiver
@@ -24,21 +25,19 @@ template MeowAllocation
           settlement
           transferLegId = show transferLeg.sender <> "->" <> show transferLeg.receiver
           transferLeg
-        holdingCids = toHoldingCids senderHoldingCids
+        holdingCids = senderHoldingCids
         meta = Meta.emptyMetadata
 
       allocation_executeTransferImpl this executeRequest = do
         now <- getTime
         assertMsg "Settlement deadline has passed" (settlement.settleBefore >= now)
 
-        receiverHoldingCid <- create MeowToken with
-          admin = settlement.executor
-          owner = transferLeg.receiver
-          amount = transferLeg.amount
+        -- calculate the sender change and create a return token (if needed)
+        senderChangeAmount <- Util.calculateSenderChange senderHoldingCids transferLeg.amount
 
-        senderChangeAmount <- Util.calculateSenderChange (toHoldingCids senderHoldingCids) transferLeg.amount
+        assertMsg "Insufficient funds: sender did not provide enough resources" (senderChangeAmount < 0.0)
 
-        senderHoldingCids <- if senderChangeAmount > 0.0 then do
+        senderChangeHoldingCids <- if senderChangeAmount > 0.0 then do
           meowCid <- create MeowToken with
             owner = transferLeg.sender
             admin = settlement.executor
@@ -47,18 +46,27 @@ template MeowAllocation
           pure [holdingCid]
           else pure []
 
+        -- create receiver holding token
+        receiverHoldingCid <- create MeowToken with
+          admin = settlement.executor
+          owner = transferLeg.receiver
+          amount = transferLeg.amount
+
+        -- archive all used sender's holding contracts
+        Foldable.forA_ senderHoldingCids archive
+
         pure Alloc.Allocation_ExecuteTransferResult with
-          senderHoldingCids
+          senderHoldingCids = senderChangeHoldingCids
           receiverHoldingCids = [Util.meowTokenToHoldingCid receiverHoldingCid]
           meta = Meta.emptyMetadata
 
       allocation_cancelImpl this cancelRequest = do
         pure Alloc.Allocation_CancelResult with
-          senderHoldingCids = toHoldingCids senderHoldingCids
+          senderHoldingCids
           meta = Meta.emptyMetadata
 
       allocation_withdrawImpl this withdrawRequest = do
         pure Alloc.Allocation_WithdrawResult with
-          senderHoldingCids = toHoldingCids senderHoldingCids
+          senderHoldingCids
           meta = Meta.emptyMetadata
 
