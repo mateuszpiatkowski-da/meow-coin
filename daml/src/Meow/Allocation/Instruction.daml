@@ -7,14 +7,22 @@ import DA.TextMap qualified as TextMap
 import Meow.Util qualified as Util
 import Meow.Allocation.Allocation
 import Splice.Api.Token.AllocationV1 qualified as Alloc
-import DA.Optional qualified as Optional
-import DA.Text qualified as Text
 
 template MeowAllocationInstructionFactory
   with
     admin : Party
+    observers : [Party]
   where
     signatory admin
+    observer observers
+
+    -- without exercising it with sender as the observer we won't enable them to exercise the Allocation choice
+    choice AddObserver : ContractId MeowAllocationInstructionFactory
+      with
+        newObservers : [Party]
+      controller admin
+      do
+        create this with observers = observers ++ newObservers
 
     interface instance AllocInstr.AllocationFactory for MeowAllocationInstructionFactory where
       view = AllocInstr.AllocationFactoryView with
@@ -22,9 +30,11 @@ template MeowAllocationInstructionFactory
         meta = Meta.emptyMetadata
 
       allocationFactory_allocateImpl this allocateRequest = do
+        assertMsg "Expected admin does not match" (allocateRequest.expectedAdmin == admin)
         Util.assertExpectedAdmin admin allocateRequest.expectedAdmin
 
         meowAllocInstructionCid <- create MeowAllocationInstruction with
+          admin
           view = AllocInstr.AllocationInstructionView with
             allocation = allocateRequest.allocation
             requestedAt = allocateRequest.requestedAt
@@ -42,15 +52,17 @@ template MeowAllocationInstructionFactory
           meta = Meta.emptyMetadata
 
       allocationFactory_publicFetchImpl this fetchRequest = do
+        assertMsg "Expected admin does not match" (fetchRequest.expectedAdmin == admin)
         pure AllocInstr.AllocationFactoryView with
           admin
           meta = Meta.emptyMetadata
 
 template MeowAllocationInstruction
   with
+    admin : Party
     view : AllocInstr.AllocationInstructionView
   where
-    signatory view.allocation.settlement.executor
+    signatory admin
     observer Map.keys view.pendingActions
 
     interface instance AllocInstr.AllocationInstruction for MeowAllocationInstruction where
@@ -63,6 +75,7 @@ template MeowAllocationInstruction
           meta = Meta.emptyMetadata
 
       allocationInstruction_updateImpl this updateRequest = do
+        -- this is made by the executor to create an allocation contract
         if updateRequest.extraActors == [] then do
           meowAllocationCid <- create MeowAllocation with
             settlement = view.allocation.settlement
@@ -77,9 +90,10 @@ template MeowAllocationInstruction
             senderChangeCids = []
             meta = Meta.emptyMetadata
         else do
-          assertMsg "Both sender and receiver must be the controllers of this choice" (any (`elem` updateRequest.extraActors) [view.allocation.transferLeg.sender, view.allocation.transferLeg.receiver])
+          -- this is made by both sender & receiver to update the allocation data
+          assertMsg "Both sender and receiver must be the controllers of this choice" (all (`elem` updateRequest.extraActors) [view.allocation.transferLeg.sender, view.allocation.transferLeg.receiver])
           let newAmount = case TextMap.lookup "amount" updateRequest.extraArgs.context.values of
-                Some (Meta.AV_Text amountStr) -> Optional.fromSomeNote "Invalid amount" (Text.parseNumeric @10 amountStr)
+                Some (Meta.AV_Decimal amount) -> amount
                 _ -> view.allocation.transferLeg.amount
           let updatedAllocation = view.allocation with
                 transferLeg = view.allocation.transferLeg with
@@ -89,6 +103,7 @@ template MeowAllocationInstruction
               originalInstructionCid = Some (toInterfaceContractId @AllocInstr.AllocationInstruction this)
           meowAllocationInstructionCid <- create MeowAllocationInstruction with
             view = updatedView
+            admin
           let allocationInstructionCid = toInterfaceContractId @AllocInstr.AllocationInstruction meowAllocationInstructionCid
 
           pure AllocInstr.AllocationInstructionResult with

@@ -1,0 +1,15 @@
+module Index where
+
+import Daml.Script
+import qualified Transfer
+import Allocation.AllocationRequest qualified as AllocReq
+import Allocation.AllocationInstruction qualified as AllocInstr
+
+test : Script ()
+test = script do
+  Transfer.test_partial_transfer
+  Transfer.test_full_transfer
+  AllocReq.test_allocation_request
+  AllocInstr.test_allocation_instruction_withdraw
+  AllocInstr.test_allocation_instruction_update
+  pure ()

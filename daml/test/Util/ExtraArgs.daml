@@ -1,0 +1,7 @@
+module Util.ExtraArgs where
+
+import Splice.Api.Token.MetadataV1 qualified as Meta
+
+emptyExtraArgs = Meta.ExtraArgs with
+  context = Meta.emptyChoiceContext
+  meta = Meta.emptyMetadata

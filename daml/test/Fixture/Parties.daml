@@ -1,0 +1,22 @@
+module Fixture.Parties where
+
+import Daml.Script
+
+data Parties = Parties with
+  sender : Party
+  receiver : Party
+  admin : Party
+  executor : Party
+    deriving (Eq, Show)
+
+create_parties : Script Parties
+create_parties = do
+  admin <- allocateParty "Admin"
+  sender <- allocateParty "Sender"
+  receiver <- allocateParty "Receiver"
+  executor <- allocateParty "Executor"
+  pure Parties with
+    sender
+    receiver
+    admin
+    executor

@@ -1,0 +1,8 @@
+module Util.SetTime where
+
+import DA.Time qualified as Time
+import DA.Date qualified as Date
+import Daml.Script
+
+set_ledger_time : Script ()
+set_ledger_time = setTime (Time.time (Date.date 2024 Date.Jan 1) 0 0 0)

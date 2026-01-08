@@ -2,18 +2,19 @@ module Fixture.Token where
 
 import Meow.Holding
 import Daml.Script
+import Fixture.Parties qualified as F.Parties
 
 -- Reusable test fixture for token creation
 data TokenFixture = TokenFixture with
     admin : Party
-    oldOwner : Party
-    newOwner : Party
+    sender : Party
+    receiver : Party
     tokenCid : ContractId MeowToken
   deriving (Eq, Show)
 
 -- Helper function to create a token with customizable metadata
-createTestToken : Party -> Party -> Decimal -> Script (ContractId MeowToken)
-createTestToken admin owner amount = do
+create_test_token : Party -> Party -> Decimal -> Script (ContractId MeowToken)
+create_test_token admin owner amount = do
   submit admin do
     createCmd MeowToken with
       admin
@@ -21,12 +22,10 @@ createTestToken admin owner amount = do
       amount
 
 -- Standard test setup with default values
-setupTokenTest : Decimal -> Script TokenFixture
-setupTokenTest amount = do
-  admin <- allocateParty "admin"
-  newOwner <- allocateParty "NewOwner"
-  oldOwner <- allocateParty "OldOwner"
+setup_token_test : Decimal -> Script TokenFixture
+setup_token_test amount = do
+  F.Parties.Parties{admin, sender, receiver} <- F.Parties.create_parties
 
-  tokenCid <- createTestToken admin oldOwner amount
+  tokenCid <- create_test_token admin sender amount
 
-  pure TokenFixture with admin; oldOwner; newOwner; tokenCid
+  pure TokenFixture with admin; sender; receiver; tokenCid

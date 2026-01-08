@@ -19,6 +19,7 @@ template MeowAllocationRequest
         transferLegs = TM.fromList transferLegList
         meta = Meta.emptyMetadata
 
+      -- NOTE: the naming convention should be `..._rejectImpl` for consistency
       allocationRequest_RejectImpl this rejectRequest = do
         let senders = map (\(_, leg) -> leg.sender) transferLegList
         assertMsg "The choice can be exercised only by senders" (rejectRequest.actor `elem` senders)

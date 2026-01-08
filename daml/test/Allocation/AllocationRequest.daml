@@ -1,0 +1,65 @@
+module Allocation.AllocationRequest where
+
+import Daml.Script
+import DA.Time qualified as Time
+import Meow.Allocation.Request
+import Splice.Api.Token.AllocationV1 qualified as Alloc
+import Splice.Api.Token.MetadataV1 qualified as Meta
+import Splice.Api.Token.HoldingV1 qualified as Holding
+import Splice.Api.Token.AllocationRequestV1 qualified as AllocReq
+import Util.ExtraArgs qualified as U.ExtraArgs
+import Util.SetTime (set_ledger_time)
+import Fixture.Parties qualified as F.Parties
+
+test_allocation_request : Script (ContractId MeowAllocationRequest)
+test_allocation_request = script do
+  parties <- F.Parties.create_parties
+  test_allocation_request_with_parties parties
+
+test_allocation_request_with_parties : F.Parties.Parties -> Script (ContractId MeowAllocationRequest)
+test_allocation_request_with_parties F.Parties.Parties{admin, receiver, sender, executor} = script do
+
+  set_ledger_time
+
+  now <- getTime
+  let allocateBefore = Time.addRelTime now (Time.hours 48)
+  let settleBefore = Time.addRelTime allocateBefore (Time.minutes 10)
+
+  let settlement = Alloc.SettlementInfo with
+        executor
+        settlementRef = Alloc.Reference with
+          id = "requestId"
+          cid = None
+        requestedAt = now
+        allocateBefore
+        settleBefore
+        meta = Meta.emptyMetadata
+
+  let transferLeg = Alloc.TransferLeg with
+        sender
+        receiver
+        amount = 100.0
+        instrumentId = Holding.InstrumentId with
+          admin
+          id = "instrumentId"
+        meta = Meta.emptyMetadata
+  let transferLegList = [("transferLegId", transferLeg)]
+
+  meowAllocationRequestCid <- submit executor do
+    createCmd MeowAllocationRequest with
+      settlement
+      transferLegList
+  let allocationRequestCid = toInterfaceContractId @AllocReq.AllocationRequest meowAllocationRequestCid
+
+  -- only executor can do it
+  submitMustFail sender do
+    exerciseCmd allocationRequestCid AllocReq.AllocationRequest_Withdraw with
+      extraArgs = U.ExtraArgs.emptyExtraArgs
+
+  -- only specified actor (sender of any transferLeg) can do it
+  submitMustFail receiver do
+    exerciseCmd allocationRequestCid AllocReq.AllocationRequest_Reject with
+      actor = receiver
+      extraArgs = U.ExtraArgs.emptyExtraArgs
+
+  pure meowAllocationRequestCid

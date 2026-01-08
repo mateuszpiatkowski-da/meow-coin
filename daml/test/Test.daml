@@ -1,9 +1,0 @@
-module Test where
-
-import Daml.Script
-import qualified Transfer
-
-test : Script ()
-test = script do
-  Transfer.test_partial_transfer
-  Transfer.test_full_transfer
