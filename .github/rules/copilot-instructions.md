@@ -115,3 +115,5 @@ For more information, read the Bun API docs in `node_modules/bun-types/docs/**.m
 for Daml-specific files or Canton-related issues, relate to official Digital Asset documentation: https://docs.digitalasset.com/ and all its subpages. Also, read the Canton Network API docs in `node_modules/@canton-network/**/*.md`.
 
 for `.daml` files use `pure ()` instead of `return ()`.
+
+Refer to https://github.com/hyperledger-labs/splice/tree/main for any topics related to token standard implementation example (especially https://github.com/hyperledger-labs/splice/tree/main/token-standard/examples/splice-token-test-trading-app). Treat it as an inspiration and notify if you use the examples from here.

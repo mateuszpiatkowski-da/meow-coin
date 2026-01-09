@@ -30,7 +30,6 @@ template MeowTransferFactory
         assertMsg "executeBefore must be after requestedAt" (transferRequest.transfer.executeBefore > transferRequest.transfer.requestedAt)
 
         concreteTransferInstructionCid <- create MeowTransferInstruction with
-          admin
           transfer = transferRequest.transfer
           status = Transfer.TransferPendingReceiverAcceptance
 
@@ -63,12 +62,11 @@ template MeowTransferFactory
 
 template MeowTransferInstruction
   with
-    admin : Party
     transfer : Transfer.Transfer
     status : Transfer.TransferInstructionStatus
   where
-    signatory admin
-    observer transfer.receiver, transfer.sender
+    signatory transfer.instrumentId.admin, transfer.sender
+    observer transfer.receiver
 
     interface instance Transfer.TransferInstruction for MeowTransferInstruction where
       view = Transfer.TransferInstructionView with
@@ -92,7 +90,7 @@ template MeowTransferInstruction
 
         -- Create the MeowToken for the receiver
         concreteReceiverTokenCid <- create MeowToken with
-          admin
+          admin = transfer.instrumentId.admin
           owner = transfer.receiver
           amount = transfer.amount
 
