@@ -13,13 +13,12 @@ import Fixture.Parties qualified as F.Parties
 
 test_allocation_request : Script (ContractId MeowAllocationRequest)
 test_allocation_request = script do
+  set_ledger_time
   parties <- F.Parties.create_parties
   test_allocation_request_with_parties parties
 
 test_allocation_request_with_parties : F.Parties.Parties -> Script (ContractId MeowAllocationRequest)
-test_allocation_request_with_parties F.Parties.Parties{admin, receiver, sender, executor} = script do
-
-  set_ledger_time
+test_allocation_request_with_parties F.Parties.Parties{admin, receiver, sender, anotherSender, executor} = script do
 
   now <- getTime
   let allocateBefore = Time.addRelTime now (Time.hours 48)
@@ -35,17 +34,25 @@ test_allocation_request_with_parties F.Parties.Parties{admin, receiver, sender, 
         settleBefore
         meta = Meta.emptyMetadata
 
-  let transferLeg = Alloc.TransferLeg with
+  let transferLeg1 = Alloc.TransferLeg with
         sender
         receiver
         amount = 100.0
         instrumentId = Holding.InstrumentId with
           admin
-          id = "instrumentId"
+          id = "instrumentId1"
         meta = Meta.emptyMetadata
-  let transferLegList = [("transferLegId", transferLeg)]
+  let transferLeg2 = Alloc.TransferLeg with
+        sender = anotherSender
+        receiver
+        amount = 35.64564
+        instrumentId = Holding.InstrumentId with
+          admin
+          id = "instrumentId2"
+        meta = Meta.emptyMetadata
+  let transferLegList = [("transferLegId1", transferLeg1), ("transferLegId2", transferLeg2)]
 
-  meowAllocationRequestCid <- submit executor do
+  meowAllocationRequestCid <- submitMulti [sender, anotherSender] [] do
     createCmd MeowAllocationRequest with
       settlement
       transferLegList
@@ -61,5 +68,12 @@ test_allocation_request_with_parties F.Parties.Parties{admin, receiver, sender, 
     exerciseCmd allocationRequestCid AllocReq.AllocationRequest_Reject with
       actor = receiver
       extraArgs = U.ExtraArgs.emptyExtraArgs
+
+  Some transferLeg <- submit executor do
+    exerciseCmd meowAllocationRequestCid GetTransferLeg with
+      transferLegId = "transferLegId2"
+      actor = executor
+
+  assertMsg "GetTransferLeg isn't working properly" (transferLeg == transferLeg2)
 
   pure meowAllocationRequestCid

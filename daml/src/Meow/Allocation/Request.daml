@@ -22,11 +22,14 @@ template MeowAllocationRequest
     observer settlement.executor :: getReceivers transferLegList
 
     -- this is a helper choice to extract a transferLeg using its ID
-    nonconsuming choice FetchTransferLeg : Optional Alloc.TransferLeg
+    nonconsuming choice GetTransferLeg : Optional Alloc.TransferLeg
       with
         transferLegId : Text
-      controller settlement.executor :: getSenders transferLegList ++ getReceivers transferLegList
+        actor : Party
+      controller actor
       do
+        assertMsg "Only signatories and observers can fetch transfer legs" 
+          (actor `elem` (settlement.executor :: getSenders transferLegList ++ getReceivers transferLegList))
         let index = List.findIndex (\(id, _) -> id == transferLegId) transferLegList
         pure (case index of
           Some idx -> Some (snd (transferLegList List.!! idx))

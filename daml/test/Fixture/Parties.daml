@@ -4,6 +4,7 @@ import Daml.Script
 
 data Parties = Parties with
   sender : Party
+  anotherSender : Party
   receiver : Party
   admin : Party
   executor : Party
@@ -13,10 +14,12 @@ create_parties : Script Parties
 create_parties = do
   admin <- allocateParty "Admin"
   sender <- allocateParty "Sender"
+  anotherSender <- allocateParty "AnotherSender"
   receiver <- allocateParty "Receiver"
   executor <- allocateParty "Executor"
   pure Parties with
     sender
+    anotherSender
     receiver
     admin
     executor

@@ -21,7 +21,7 @@ create_allocation_instruction = script do
   set_ledger_time
 
   -- prepare allocation data via MeowAllocationRequest
-  meowAllocRequestCid <- Test.AllocReq.test_allocation_request_with_parties F.Parties.Parties{admin, receiver, sender, executor}
+  meowAllocRequestCid <- Test.AllocReq.test_allocation_request_with_parties F.Parties.Parties{admin, receiver, sender, anotherSender, executor}
   Some meowAllocRequest <- queryContractId executor meowAllocRequestCid
   let allocRequestView = view (toInterface @AllocReq.AllocationRequest meowAllocRequest)
 
