@@ -10,10 +10,10 @@ import Fixture.Token qualified as F.Token
 import Util.SetTime (setLedgerTime)
 import Util.ExtraArgs (emptyExtraArgs)
 
-test_transfer : Decimal -> Decimal -> Script ()
-test_transfer startAmount amountToTransfer = script do
+testTransfer : Decimal -> Decimal -> Script ()
+testTransfer startAmount amountToTransfer = script do
   assertMsg "startAmount and amountToTransfer must be valid" (startAmount >= amountToTransfer && amountToTransfer >= 0.0)
-  F.Token.TokenFixture{admin, sender, receiver, tokenCid} <- F.Token.setup_token_test startAmount
+  F.Token.TokenFixture{admin, sender, receiver, tokenCid} <- F.Token.setupTestToken startAmount
 
   Some token <- queryContractId admin tokenCid
 
@@ -54,12 +54,12 @@ test_transfer startAmount amountToTransfer = script do
   pure ()
 
 
-test_partial_transfer : Script ()
-test_partial_transfer = script do
-  test_transfer 100.0 46.6532
+testPartialTransfer : Script ()
+testPartialTransfer = script do
+  testTransfer 100.0 46.6532
   pure ()
 
-test_full_transfer : Script ()
-test_full_transfer = script do
-  test_transfer 100.0 100.0
+testFullTransfer : Script ()
+testFullTransfer = script do
+  testTransfer 100.0 100.0
   pure ()

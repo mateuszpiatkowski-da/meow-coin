@@ -87,6 +87,7 @@ template MeowAllocationInstruction
           transferLeg = allocation.transferLeg
           transferLegId = allocation.transferLegId
           senderHoldingCids = inputHoldingCids
+          admin
         let allocationCid = toInterfaceContractId @Alloc.Allocation meowAllocationCid
 
         pure AllocInstr.AllocationInstructionResult with

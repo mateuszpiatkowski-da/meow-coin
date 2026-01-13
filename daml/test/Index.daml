@@ -4,12 +4,15 @@ import Daml.Script
 import qualified Transfer
 import Allocation.AllocationRequest qualified as AllocReq
 import Allocation.AllocationInstruction qualified as AllocInstr
+import Allocation.Allocation qualified as Alloc
 
-test : Script ()
 test = script do
-  Transfer.test_partial_transfer
-  Transfer.test_full_transfer
-  AllocReq.test_allocation_request
-  AllocInstr.test_allocation_instruction_withdraw
-  AllocInstr.test_allocation_instruction_update
+  Transfer.testPartialTransfer
+  Transfer.testFullTransfer
+  AllocReq.testAllocationRequest
+  AllocInstr.testAllocationInstructionWithdraw
+  AllocInstr.testAllocationInstructionUpdate
+  Alloc.testAllocationExecute
+  Alloc.testAllocationCancel
+  Alloc.testAllocationWithdraw
   pure ()

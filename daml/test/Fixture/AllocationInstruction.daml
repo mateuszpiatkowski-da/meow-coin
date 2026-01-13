@@ -22,12 +22,12 @@ data AllocationInstructionFixture = AllocationInstructionFixture with
 -- where (A, B=[..]):
 -- A: amount to send to receiver
 -- B: sender holdings with given amounts
-create_allocation_instruction : (Decimal, [Decimal]) -> (Decimal, [Decimal]) -> Script AllocationInstructionFixture
-create_allocation_instruction (senderSendingAmount, senderHoldingAmounts) (anotherSenderSendingAmount, anotherSenderHoldingAmounts) = script do
-  parties@F.Parties.Parties{admin, receiver, sender, anotherSender, executor} <- F.Parties.create_parties
+createAllocationInstruction : (Decimal, [Decimal]) -> (Decimal, [Decimal]) -> Script AllocationInstructionFixture
+createAllocationInstruction (senderSendingAmount, senderHoldingAmounts) (anotherSenderSendingAmount, anotherSenderHoldingAmounts) = script do
+  parties@F.Parties.Parties{admin, receiver, sender, anotherSender, executor} <- F.Parties.createParties
 
   -- prepare allocation data via MeowAllocationRequest
-  meowAllocRequestCid <- Test.AllocReq.test_allocation_request_with_parties F.Parties.Parties{admin, receiver, sender, anotherSender, executor} (senderSendingAmount, anotherSenderSendingAmount)
+  meowAllocRequestCid <- Test.AllocReq.testAllocationRequestWithParties F.Parties.Parties{admin, receiver, sender, anotherSender, executor} (senderSendingAmount, anotherSenderSendingAmount)
   Some meowAllocRequest <- queryContractId executor meowAllocRequestCid
   let allocRequestView = view (toInterface @AllocReq.AllocationRequest meowAllocRequest)
 
@@ -66,8 +66,8 @@ create_allocation_instruction (senderSendingAmount, senderHoldingAmounts) (anoth
   now <- getTime
 
   -- create tokens as inputs
-  senderHoldings <- mapA (fmap Util.meowTokenToHoldingCid . F.Token.create_test_token admin sender) senderHoldingAmounts
-  anotherSenderHoldings <- mapA (fmap Util.meowTokenToHoldingCid . F.Token.create_test_token admin anotherSender) anotherSenderHoldingAmounts
+  senderHoldings <- mapA (fmap Util.meowTokenToHoldingCid . F.Token.createTestToken admin sender) senderHoldingAmounts
+  anotherSenderHoldings <- mapA (fmap Util.meowTokenToHoldingCid . F.Token.createTestToken admin anotherSender) anotherSenderHoldingAmounts
 
   -- create MeowAllocationInstructions
   factoryAllocationResult <- submit sender do

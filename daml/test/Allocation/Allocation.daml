@@ -1,2 +1,63 @@
 module Allocation.Allocation where
 
+import Daml.Script
+import Fixture.Allocation qualified as F.Allocation
+import Fixture.Parties qualified as F.Parties
+import Splice.Api.Token.AllocationV1 qualified as Alloc
+import Util.ExtraArgs (emptyExtraArgs)
+import Util.SetTime (setLedgerTime)
+
+testAllocationExecute = script do
+  setLedgerTime
+  F.Allocation.AllocationFixture{allocationCid, anotherAllocationCid, parties = F.Parties.Parties{executor, sender, anotherSender, receiver}} <- F.Allocation.createAllocation
+
+  -- sender cannot influence foreign allocation
+  submitMultiMustFail [executor, sender, receiver] [] do
+    exerciseCmd anotherAllocationCid Alloc.Allocation_ExecuteTransfer with
+      extraArgs = emptyExtraArgs
+
+  -- anotherSender did not provide enough resources
+  submitMultiMustFail [executor, anotherSender, receiver] [] do
+    exerciseCmd anotherAllocationCid Alloc.Allocation_ExecuteTransfer with
+      extraArgs = emptyExtraArgs
+
+  submitMulti [executor, sender, receiver] [] do
+    exerciseCmd allocationCid Alloc.Allocation_ExecuteTransfer with
+      extraArgs = emptyExtraArgs
+  pure ()
+
+testAllocationCancel = script do
+  setLedgerTime
+  F.Allocation.AllocationFixture{allocationCid, anotherAllocationCid, parties = F.Parties.Parties{admin, executor, sender, anotherSender, receiver}} <- F.Allocation.createAllocation
+
+  -- sender cannot influence foreign allocation
+  submitMultiMustFail [executor, sender, receiver] [] do
+    exerciseCmd anotherAllocationCid Alloc.Allocation_Cancel with
+      extraArgs = emptyExtraArgs
+
+  submitMulti [executor, sender, receiver] [] do
+    exerciseCmd allocationCid Alloc.Allocation_Cancel with
+      extraArgs = emptyExtraArgs
+
+  submitMulti [executor, anotherSender, receiver] [] do
+    exerciseCmd anotherAllocationCid Alloc.Allocation_Cancel with
+      extraArgs = emptyExtraArgs
+  pure ()
+
+testAllocationWithdraw = script do
+  setLedgerTime
+  F.Allocation.AllocationFixture{allocationCid, anotherAllocationCid, parties = F.Parties.Parties{admin, executor, sender, anotherSender, receiver}} <- F.Allocation.createAllocation
+
+  -- sender cannot influence foreign allocation
+  submitMustFail sender do
+    exerciseCmd anotherAllocationCid Alloc.Allocation_Withdraw with
+      extraArgs = emptyExtraArgs
+
+  submit sender do
+    exerciseCmd allocationCid Alloc.Allocation_Withdraw with
+      extraArgs = emptyExtraArgs
+
+  submit anotherSender do
+    exerciseCmd anotherAllocationCid Alloc.Allocation_Withdraw with
+      extraArgs = emptyExtraArgs
+  pure ()

@@ -9,12 +9,13 @@ import DA.Foldable qualified as Foldable
 
 template MeowAllocation
   with
+    admin : Party
     settlement : Alloc.SettlementInfo
     transferLeg : Alloc.TransferLeg
     transferLegId : Text
     senderHoldingCids : [ContractId Holding.Holding]
   where
-    signatory settlement.executor
+    signatory settlement.executor, admin
     observer transferLeg.sender, transferLeg.receiver
 
     interface instance Alloc.Allocation for MeowAllocation where
@@ -33,7 +34,7 @@ template MeowAllocation
         -- calculate the sender change and create a return token (if needed)
         senderChangeAmount <- Util.calculateSenderChange senderHoldingCids transferLeg.amount
 
-        assertMsg "Insufficient funds: sender did not provide enough resources" (senderChangeAmount < 0.0)
+        assertMsg "Insufficient funds: sender did not provide enough resources" (senderChangeAmount >= 0.0)
 
         senderChangeHoldingCids <- if senderChangeAmount > 0.0 then do
           meowCid <- create MeowToken with

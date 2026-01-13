@@ -5,14 +5,12 @@ import Fixture.Parties qualified as F.Parties
 import Util.SetTime (setLedgerTime)
 import Util.ExtraArgs (emptyExtraArgs)
 import Splice.Api.Token.AllocationInstructionV1 qualified as AllocInstr
-import DA.TextMap qualified as TM
-import Splice.Api.Token.MetadataV1 qualified as Meta
 import Fixture.AllocationInstruction qualified as F.AllocInstr
-import Splice.Api.Token.AllocationV1 qualified as Alloc
+import Fixture.Allocation (createAllocation)
 
-test_allocation_instruction_withdraw = script do
+testAllocationInstructionWithdraw = script do
   setLedgerTime
-  F.AllocInstr.AllocationInstructionFixture{allocationCid, anotherAllocationCid, parties = F.Parties.Parties{admin, sender, anotherSender, receiver, executor}} <- F.AllocInstr.create_allocation_instruction (100.0, [99.5343, 2.5321]) (50.0, [15.32])
+  F.AllocInstr.AllocationInstructionFixture{allocationCid, anotherAllocationCid, parties = F.Parties.Parties{admin, sender, anotherSender, receiver, executor}} <- F.AllocInstr.createAllocationInstruction (100.0, [99.5343, 2.5321]) (50.0, [15.32])
   submit sender do
     exerciseCmd allocationCid AllocInstr.AllocationInstruction_Withdraw with
       extraArgs = emptyExtraArgs
@@ -25,37 +23,7 @@ test_allocation_instruction_withdraw = script do
       extraArgs = emptyExtraArgs
   pure ()
 
-test_allocation_instruction_update = script do
+testAllocationInstructionUpdate = script do
   setLedgerTime
-  F.AllocInstr.AllocationInstructionFixture{allocationCid, anotherAllocationCid, parties = F.Parties.Parties{admin, sender, anotherSender, receiver, executor}} <- F.AllocInstr.create_allocation_instruction (100.0, [99.5343, 2.5321]) (50.0, [15.32])
-
-  -- must be both sender and executor
-  submitMultiMustFail [sender, admin, executor] [] do
-    exerciseCmd allocationCid AllocInstr.AllocationInstruction_Update with
-      extraActors = [sender]
-      extraArgs = emptyExtraArgs
-
-  allocationResult <- submitMulti [admin, sender, executor] [] do
-    exerciseCmd allocationCid AllocInstr.AllocationInstruction_Update with
-      extraActors = [executor, sender]
-      extraArgs = emptyExtraArgs
-
-  anotherSenderAllocationResult <- submitMulti [admin, executor, anotherSender] [] do
-    exerciseCmd anotherAllocationCid AllocInstr.AllocationInstruction_Update with
-      extraActors = [executor, anotherSender]
-      extraArgs = emptyExtraArgs
-
-  assertMsg "Allocation should be marked as completed" (case allocationResult.output of
-    AllocInstr.AllocationInstructionResult_Completed _ -> True
-    _ -> False)
-
-  let allocationCid = allocationResult.output.allocationCid
-  allocationView <- submit admin do
-    queryContractId allocationCid
-
-  debug allocationCid
-  -- let newAllocationCid = allocationResult.output.allocationInstructionCid
-  -- Some newView <- queryInterfaceContractId @AllocInstr.AllocationInstruction sender newAllocationCid
-
-  -- assertMsg "Amount should be updated to 4.6234" (newView.allocation.transferLeg.amount == 4.6234)
+  createAllocation
   pure ()

@@ -10,8 +10,8 @@ data Parties = Parties with
   executor : Party
     deriving (Eq, Show)
 
-create_parties : Script Parties
-create_parties = do
+createParties : Script Parties
+createParties = do
   admin <- allocateParty "Admin"
   sender <- allocateParty "Sender"
   anotherSender <- allocateParty "AnotherSender"

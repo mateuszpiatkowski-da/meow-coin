@@ -11,14 +11,14 @@ import Util.ExtraArgs qualified as U.ExtraArgs
 import Util.SetTime (setLedgerTime)
 import Fixture.Parties qualified as F.Parties
 
-test_allocation_request : Script (ContractId MeowAllocationRequest)
-test_allocation_request = script do
+testAllocationRequest : Script (ContractId MeowAllocationRequest)
+testAllocationRequest = script do
   setLedgerTime
-  parties <- F.Parties.create_parties
-  test_allocation_request_with_parties parties (100.0, 35.64564)
+  parties <- F.Parties.createParties
+  testAllocationRequestWithParties parties (100.0, 35.64564)
 
-test_allocation_request_with_parties : F.Parties.Parties -> (Decimal, Decimal) -> Script (ContractId MeowAllocationRequest)
-test_allocation_request_with_parties F.Parties.Parties{admin, receiver, sender, anotherSender, executor} (senderAmount, anotherSenderAmount) = script do
+testAllocationRequestWithParties : F.Parties.Parties -> (Decimal, Decimal) -> Script (ContractId MeowAllocationRequest)
+testAllocationRequestWithParties F.Parties.Parties{admin, receiver, sender, anotherSender, executor} (senderAmount, anotherSenderAmount) = script do
 
   now <- getTime
   let allocateBefore = Time.addRelTime now (Time.hours 48)

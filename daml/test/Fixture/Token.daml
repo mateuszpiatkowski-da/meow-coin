@@ -10,11 +10,11 @@ data TokenFixture = TokenFixture with
     sender : Party
     receiver : Party
     tokenCid : ContractId MeowToken
-  deriving (Eq, Show)
+      deriving (Eq, Show)
 
 -- Helper function to create a token with customizable metadata
-create_test_token : Party -> Party -> Decimal -> Script (ContractId MeowToken)
-create_test_token admin owner amount = do
+createTestToken : Party -> Party -> Decimal -> Script (ContractId MeowToken)
+createTestToken admin owner amount = do
   submit admin do
     createCmd MeowToken with
       admin
@@ -22,10 +22,10 @@ create_test_token admin owner amount = do
       amount
 
 -- Standard test setup with default values
-setup_token_test : Decimal -> Script TokenFixture
-setup_token_test amount = do
-  F.Parties.Parties{admin, sender, receiver} <- F.Parties.create_parties
+setupTestToken : Decimal -> Script TokenFixture
+setupTestToken amount = do
+  F.Parties.Parties{admin, sender, receiver} <- F.Parties.createParties
 
-  tokenCid <- create_test_token admin sender amount
+  tokenCid <- createTestToken admin sender amount
 
   pure TokenFixture with admin; sender; receiver; tokenCid

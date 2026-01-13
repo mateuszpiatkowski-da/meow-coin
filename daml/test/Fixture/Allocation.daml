@@ -1,0 +1,45 @@
+module Fixture.Allocation where
+
+import Daml.Script
+import Fixture.Parties qualified as F.Parties
+import Util.ExtraArgs (emptyExtraArgs)
+import Splice.Api.Token.AllocationInstructionV1 qualified as AllocInstr
+import Fixture.AllocationInstruction qualified as F.AllocInstr
+import Splice.Api.Token.AllocationV1 qualified as Alloc
+
+data AllocationFixture = AllocationFixture with
+  allocationCid : ContractId Alloc.Allocation
+  anotherAllocationCid : ContractId Alloc.Allocation
+  parties : F.Parties.Parties
+    deriving (Eq, Show)
+
+createAllocation = script do
+  F.AllocInstr.AllocationInstructionFixture{allocationCid, anotherAllocationCid, parties = parties@F.Parties.Parties{admin, sender, anotherSender, receiver, executor}} <- F.AllocInstr.createAllocationInstruction (100.0, [99.5343, 2.5321]) (50.0, [15.32])
+
+  -- must be both sender and executor
+  submitMultiMustFail [sender, admin, executor] [] do
+    exerciseCmd allocationCid AllocInstr.AllocationInstruction_Update with
+      extraActors = [sender]
+      extraArgs = emptyExtraArgs
+
+  allocationResult <- submitMulti [admin, sender, executor] [] do
+    exerciseCmd allocationCid AllocInstr.AllocationInstruction_Update with
+      extraActors = [executor, sender]
+      extraArgs = emptyExtraArgs
+
+  anotherAllocationResult <- submitMulti [admin, executor, anotherSender] [] do
+    exerciseCmd anotherAllocationCid AllocInstr.AllocationInstruction_Update with
+      extraActors = [executor, anotherSender]
+      extraArgs = emptyExtraArgs
+
+  let allocationCid = allocationResult.output.allocationCid
+  Some allocationView <- queryInterfaceContractId @Alloc.Allocation admin allocationCid
+
+  let anotherAllocationCid = anotherAllocationResult.output.allocationCid
+
+  assertMsg "Allocation should be properly set up" (allocationView.allocation.transferLeg.amount == 100.0 && allocationView.allocation.transferLeg.sender == sender && allocationView.allocation.transferLeg.receiver == receiver && allocationView.allocation.settlement.executor == executor)
+
+  pure AllocationFixture with
+    allocationCid
+    anotherAllocationCid
+    parties
