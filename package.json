@@ -5,13 +5,16 @@
   "type": "module",
   "scripts": {
     "daml:rebuild": "(cd ./daml && rm -rf .daml && daml clean && daml build) && (cd ./daml/test && rm -rf .daml && daml clean && daml build)",
-    "dev": "bun --watch run src/index.ts"
+    "dev": "bun --watch run src/index.ts",
+    "types:generate": "openapi-typescript",
+    "postinstall": "bun run types:generate && bun run daml:rebuild"
   },
   "dependencies": {
     "openapi-backend": "^5.15.0"
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "openapi-typescript": "^7.10.1",
     "prettier": "^3.7.4"
   },
   "peerDependencies": {

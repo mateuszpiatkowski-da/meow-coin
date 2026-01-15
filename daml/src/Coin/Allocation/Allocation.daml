@@ -41,6 +41,7 @@ template CoinAllocation
             owner = transferLeg.sender
             admin = settlement.executor
             amount = senderChangeAmount
+            createdAt = now
           let holdingCid = Util.testTokenToHoldingCid testCid
           pure [holdingCid]
           else pure []
@@ -50,6 +51,7 @@ template CoinAllocation
           admin = settlement.executor
           owner = transferLeg.receiver
           amount = transferLeg.amount
+          createdAt = now
 
         let receiverHoldingCids = [Util.testTokenToHoldingCid receiverHoldingCid]
 

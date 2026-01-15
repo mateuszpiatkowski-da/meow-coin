@@ -1,0 +1,17 @@
+apis:
+  metadata:
+    root: ./token-standard-api/openapi/token-metadata-v1.yaml
+    x-openapi-ts:
+      output: ./src/api/metadata/types.ts
+  transfer:
+    root: ./token-standard-api/openapi/transfer-instruction-v1.yaml
+    x-openapi-ts:
+      output: ./src/api/transfer/types.ts
+  allocation:
+    root: ./token-standard-api/openapi/allocation-v1.yaml
+    x-openapi-ts:
+      output: ./src/api/allocation/types.ts
+  allocation-instruction:
+    root: ./token-standard-api/openapi/allocation-instruction-v1.yaml
+    x-openapi-ts:
+      output: ./src/api/allocation-instruction/types.ts

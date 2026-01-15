@@ -38,12 +38,15 @@ template CoinTransferFactory
         -- check if the sender sends too much
         senderChange <- Util.calculateSenderChange transferRequest.transfer.inputHoldingCids transferRequest.transfer.amount
 
+        now <- getTime
+
         -- create change for sender (if needed)
         senderChangeCids <- if senderChange > 0.0 then do
           concreteChangeCid <- create CoinToken with
             admin
             owner = transferRequest.transfer.sender
             amount = senderChange
+            createdAt = now
           let changeHoldingCid = Util.testTokenToHoldingCid concreteChangeCid
           pure [changeHoldingCid]
           else pure []
@@ -93,6 +96,7 @@ template CoinTransferInstruction
           admin = transfer.instrumentId.admin
           owner = transfer.receiver
           amount = transfer.amount
+          createdAt = now
 
         let receiverTokenCid = Util.testTokenToHoldingCid concreteReceiverTokenCid
 

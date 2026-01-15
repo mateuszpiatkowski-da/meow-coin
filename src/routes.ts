@@ -15,17 +15,8 @@ const adaptBunRequest = (req: Request): OpenAPIBackendRequest => {
   };
 };
 
-const registryRoutes = {
-  '/metadata/*': (req: Request) => metadataApi.handleRequest(adaptBunRequest(req)),
-};
-
 export default {
-  '/registry/*': async (req: Request) => {
-    const url = new URL(req.url);
-    const subPath = url.pathname.replace('/registry', '') || '/';
-
-    // Basic manual routing logic
-    const handler = registryRoutes[subPath as keyof typeof registryRoutes];
-    return handler ? handler(req) : new Response('Not Found', { status: 404 });
+  '/registry/metadata/*': (req: Request) => {
+    return metadataApi.handleRequest(adaptBunRequest(req));
   },
 } satisfies Bun.Serve.Routes<undefined, string>;
