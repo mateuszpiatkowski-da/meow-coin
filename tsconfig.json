@@ -17,8 +17,7 @@
     // Path aliases
     "baseUrl": ".",
     "paths": {
-      "@splice-wallet-kernel/*": ["splice-wallet-kernel/*"],
-      "@token-api/*": ["token-standard-api/*"]
+      "@openapi/*": ["node_modules/@canton-network/core-token-standard/dist/generated-clients/*"]
     },
 
     // Best practices
