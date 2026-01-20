@@ -1,6 +1,6 @@
 import { TokenStandardClient } from '@canton-network/core-token-standard';
 import { localNetStaticConfig } from '@canton-network/wallet-sdk';
-import { generateAccessToken } from './auth';
+import { generateAccessToken } from '../auth';
 import { createLogger } from './logger';
 
 const logger = createLogger({ name: 'TokenStandardClient' });

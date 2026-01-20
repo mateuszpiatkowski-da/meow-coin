@@ -117,3 +117,7 @@ for Daml-specific files or Canton-related issues, relate to official Digital Ass
 for `.daml` files use `pure ()` instead of `return ()`.
 
 Refer to https://github.com/hyperledger-labs/splice/tree/main for any topics related to token standard implementation example (especially https://github.com/hyperledger-labs/splice/tree/main/token-standard/examples/splice-token-test-trading-app). Treat it as an inspiration and notify if you use the examples from here.
+
+## Long-term goal
+
+The purpose of this project is to create a token-standard-compliant app that would implement Splice Token APIs (https://github.com/hyperledger-labs/splice/tree/main/token-standard) which would in turn be used to test again Canton Network to see if it accepts any token other than Amulet. The tests would be conducted by executing scripts that can be found here: https://github.com/hyperledger-labs/splice-wallet-kernel/tree/main/docs/wallet-integration-guide/examples/scripts. After conducting the tests we expect to have automatic test report ready.
