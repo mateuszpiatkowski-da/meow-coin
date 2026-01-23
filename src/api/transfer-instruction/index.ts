@@ -1,0 +1,48 @@
+import * as types from '@openapi/splice-api-token-transfer-instruction-v1/transfer-instruction-v1';
+import definition from '@token-standard/splice-api-token-transfer-instruction-v1/openapi/transfer-instruction-v1.yaml';
+import OpenAPIBackend, { type Handler } from 'openapi-backend';
+
+const api = new OpenAPIBackend({ definition, quick: true });
+
+const getTransferFactory: Handler = () => {
+  return Response.json({
+    factoryId: 'asdas',
+    transferKind: 'direct',
+    choiceContext: {
+      choiceContextData: {},
+      disclosedContracts: [],
+    },
+  } satisfies types.operations['getTransferFactory']['responses']['200']['content']['application/json']);
+};
+
+const getTransferInstructionAcceptContext: Handler = () => {
+  return Response.json({
+    choiceContextData: {},
+    disclosedContracts: [],
+  } satisfies types.operations['getTransferInstructionAcceptContext']['responses']['200']['content']['application/json']);
+};
+
+const getTransferInstructionRejectContext: Handler = () => {
+  return Response.json({
+    choiceContextData: {},
+    disclosedContracts: [],
+  } satisfies types.operations['getTransferInstructionRejectContext']['responses']['200']['content']['application/json']);
+};
+
+const getTransferInstructionWithdrawContext: Handler = () => {
+  return Response.json({
+    choiceContextData: {},
+    disclosedContracts: [],
+  } satisfies types.operations['getTransferInstructionWithdrawContext']['responses']['200']['content']['application/json']);
+};
+
+api.register({
+  getTransferFactory,
+  getTransferInstructionAcceptContext,
+  getTransferInstructionRejectContext,
+  getTransferInstructionWithdrawContext,
+});
+
+await api.init();
+
+export default api;

@@ -17,7 +17,8 @@
     // Path aliases
     "baseUrl": ".",
     "paths": {
-      "@openapi/*": ["node_modules/@canton-network/core-token-standard/dist/generated-clients/*"]
+      "@token-standard/*": ["./splice/token-standard/*"],
+      "@openapi/*": ["./node_modules/@canton-network/core-token-standard/dist/generated-clients/*"]
     },
 
     // Best practices

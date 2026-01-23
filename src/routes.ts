@@ -1,8 +1,25 @@
-import metadataAPI from './api/metadata';
-import { type Serve } from 'bun';
+import metadataApi from './api/metadata';
+import transferInstructionApi from './api/transfer-instruction';
+import { type Request as OpenAPIBackendRequest } from 'openapi-backend';
+import { type BunRequest, type Serve } from 'bun';
+
+// Adapter to convert Bun Request to OpenAPI Backend Request
+const adaptBunRequest = (req: BunRequest): OpenAPIBackendRequest => {
+  const url = new URL(req.url);
+  return {
+    path: url.pathname,
+    query: Object.fromEntries(url.searchParams),
+    method: req.method,
+    headers: Object.fromEntries(req.headers),
+    body: req.body,
+  };
+};
 
 export default {
-  '/registry/metadata/*': async (req: Request) => {
-    return Response.json(await metadataAPI(req));
+  '/registry/metadata/v1/*': async (req: BunRequest) => {
+    return await metadataApi.handleRequest(adaptBunRequest(req));
+  },
+  '/registry/transfer-instruction/v1/*': async (req: BunRequest) => {
+    return await transferInstructionApi.handleRequest(adaptBunRequest(req));
   },
 } satisfies Serve.Routes<undefined, string>;

@@ -1,19 +1,22 @@
 import { serve } from 'bun';
 import routes from './routes';
 import logger from './util/logger';
-import uploadDar from './util/uploadDAR';
+import Initializer from './util/init';
+import { notFound } from './api/error';
 
 const server = serve({
-  port: import.meta.env.PORT || 3000,
+  port: import.meta.env.PORT || 3001,
   routes,
   fetch() {
-    return new Response('Not Found', { status: 404 });
+    return notFound;
   },
 });
 
-// init
-(async () => {
-  await uploadDar();
-})();
+// const initializer = new Initializer();
 
-logger.info(`✓ Server running at ${server.url}`);
+// init
+// await initializer.init();
+// await initializer.uploadDar();
+// await initializer.vetPackage();
+
+logger.info(`Server running at ${server.url}`);
