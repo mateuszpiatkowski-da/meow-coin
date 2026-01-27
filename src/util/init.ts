@@ -2,21 +2,28 @@ import logger from './logger';
 import { $, file } from 'bun';
 import { join } from 'path';
 import { readdirSync } from 'fs';
-import sdk from './walletSDK';
+import sdk from '../util/walletSDK';
+import Singleton from './singleton';
+import { createKeyPair, localNetStaticConfig } from '@canton-network/wallet-sdk';
+import admin from './admin';
+import { packageId } from '@daml-ts/test-coin-1.0.0';
 
 type DARType = {
   path: string;
   files: string[];
 };
 
-export default class Initializer {
-  private packageId: string = '';
+export default class Initializer extends Singleton {
   private dar: DARType | null = null;
 
+  constructor() {
+    super();
+  }
+
   public async init() {
-    sdk.tokenStandard?.setTransferFactoryRegistryUrl(
-      new URL(`${import.meta.env.REGISTRY_URL}:${import.meta.env.PORT}`),
-    );
+    await this.initSDK();
+
+    logger.info({ packageId }, 'Using .dar package');
 
     const distDir = join(import.meta.dirname, '../../daml/.daml/dist');
     let darFiles = readdirSync(distDir)
@@ -29,6 +36,7 @@ export default class Initializer {
       darFiles = readdirSync(distDir)
         .filter((f) => /^test-coin-.*\.dar$/.test(f))
         .sort();
+      logger.info('.dar files built successfully');
     }
 
     this.dar = {
@@ -36,43 +44,49 @@ export default class Initializer {
       files: darFiles,
     };
 
-    const { main_package_id } = await $`daml damlc inspect-dar ${darPath} --json`.json();
-    this.packageId = main_package_id;
-    logger.info('Successfully obtained .dar package ID');
+    await this.setupAdmin();
+    await sdk.connectTopology(sdk.userLedger!.getSynchronizerId());
+    await this.uploadDar();
   }
 
-  public async uploadDar() {
+  private async initSDK() {
+    // Initialize SDK connections
+    await Promise.all([
+      sdk.connect(),
+      sdk.connectAdmin(),
+      sdk.connectTopology(localNetStaticConfig.LOCALNET_SCAN_PROXY_API_URL),
+    ]);
+    logger.info('SDK connected');
+  }
+
+  private async setupAdmin() {
+    const { privateKey, publicKey } = createKeyPair();
+    admin.keyPair.privateKey = privateKey;
+    admin.keyPair.publicKey = publicKey;
+
+    const transactionResponse = await sdk.userLedger?.signAndAllocateExternalParty(privateKey, 'admin');
+    admin.partyId = transactionResponse!.partyId;
+    await sdk.setPartyId(admin.partyId);
+    logger.info('Successfully created admin party');
+  }
+
+  private async uploadDar() {
     if (!this.dar) return;
-    if (await sdk.adminLedger?.isPackageUploaded(this.packageId)) {
-      logger.info('DAR already uploaded, skipping...');
+    if (await sdk.userLedger?.isPackageUploaded(packageId)) {
+      logger.info({ dar: this.dar.files[this.dar.files.length - 1] }, 'DAR already uploaded, skipping...');
       return;
     }
     try {
       const darBytes = await file(this.dar.path);
       await sdk.adminLedger?.uploadDar(new Uint8Array(await darBytes.arrayBuffer()));
-      logger.info(`DAR uploaded: ${this.dar.files[this.dar.files.length - 1]}`);
-    } catch (error: unknown) {
+      logger.info({ dar: this.dar.files[this.dar.files.length - 1] }, 'DAR uploaded');
+    } catch (error: any) {
+      if (error.code === 'KNOWN_PACKAGE_VERSION') {
+        logger.info({ dar: this.dar.files[this.dar.files.length - 1] }, 'DAR already uploaded, skipping...');
+        return;
+      }
       logger.error({ error }, 'DAR upload failed');
       throw error;
     }
   }
-
-  // public async vetPackage() {
-  //   // use ledgerClient <-
-  //   console.log('VETTING');
-  //   const synchronizers = await sdk.adminLedger?.listSynchronizers();
-  //   console.log('DONE');
-  //   const synchronizerId = synchronizers?.connectedSynchronizers?.[0]?.synchronizerId;
-
-  //   console.log(synchronizers, synchronizerId);
-
-  //   const adminApiUrl = '';
-  //   const command = {
-  //     id: synchronizerId,
-  //     packageIds: [this.packageId],
-  //     participantId: await sdk.adminLedger?.getParticipantId(),
-  //   };
-
-  //   const response = await fetch(`http://${adminApiUrl}/api/topology-manager/authorize`);
-  // }
 }

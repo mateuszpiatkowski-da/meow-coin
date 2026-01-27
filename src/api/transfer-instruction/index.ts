@@ -1,10 +1,14 @@
 import * as types from '@openapi/splice-api-token-transfer-instruction-v1/transfer-instruction-v1';
 import definition from '@token-standard/splice-api-token-transfer-instruction-v1/openapi/transfer-instruction-v1.yaml';
 import OpenAPIBackend, { type Handler } from 'openapi-backend';
+import TransferService from './service';
 
 const api = new OpenAPIBackend({ definition, quick: true });
+const service = TransferService.getInstance();
 
-const getTransferFactory: Handler = () => {
+const getTransferFactory: Handler = async () => {
+  const result = await service.createTransferFactory();
+  console.log(result);
   return Response.json({
     factoryId: 'asdas',
     transferKind: 'direct',

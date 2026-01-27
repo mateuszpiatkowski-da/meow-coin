@@ -8,7 +8,12 @@ const api = new OpenAPIBackend({
   quick: true,
 });
 
-const supportedApis = { 'splice-api-token-metadata-v1': 1 };
+const supportedApis = {
+  'splice-api-token-metadata-v1': 1,
+  'splice-api-token-transfer-instruction-v1': 1,
+  'splice-api-token-allocation-v1': 1,
+  'splice-api-token-allocation-instruction-v1': 1,
+};
 
 const instruments = [
   {
