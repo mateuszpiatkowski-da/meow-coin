@@ -3,7 +3,6 @@ import { $, file } from 'bun';
 import { join } from 'path';
 import { readdirSync } from 'fs';
 import sdk from '../util/walletSDK';
-import Singleton from './singleton';
 import admin from './admin';
 import { packageId } from '@daml-ts/test-coin-1.0.0/lib';
 
@@ -12,13 +11,8 @@ type DARType = {
   files: string[];
 };
 
-export default class Initializer extends Singleton {
+class Initializer {
   private dar: DARType | null = null;
-
-  constructor() {
-    super();
-  }
-
   public async init() {
     logger.info({ packageId }, 'Using .dar package');
 
@@ -73,3 +67,6 @@ export default class Initializer extends Singleton {
     }
   }
 }
+
+const initializer = new Initializer();
+export default initializer;

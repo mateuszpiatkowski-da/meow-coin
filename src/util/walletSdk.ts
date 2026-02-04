@@ -1,14 +1,12 @@
 import { localNetStaticConfig, WalletSDKImpl } from '@canton-network/wallet-sdk';
 import { createLogger } from '../util/logger';
-import Singleton from './singleton';
 
 const logger = createLogger({ name: 'WalletSDK' });
 
-class TestCoinWalletSDK extends Singleton {
+class TestCoinWalletSDK {
   public impl = new WalletSDKImpl();
 
   constructor() {
-    super();
     this.impl.configure({
       logger,
     });
@@ -25,7 +23,7 @@ class TestCoinWalletSDK extends Singleton {
   }
 }
 
-const testCoinWalletSDK = TestCoinWalletSDK.getInstance();
+const testCoinWalletSDK = new TestCoinWalletSDK();
 await testCoinWalletSDK.init();
 
 const sdk = testCoinWalletSDK.impl;

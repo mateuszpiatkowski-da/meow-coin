@@ -1,34 +1,13 @@
-import Singleton from 'src/util/singleton';
 import sdk from 'src/util/walletSDK';
 import { LedgerController, type WrappedCommand } from '@canton-network/wallet-sdk';
 import admin from 'src/util/admin';
 import { CoinTransferFactory, CoinTransferInstruction } from '@daml-ts/test-coin-1.0.0/lib/Coin/Transfer/module';
 import { randomUUIDv7 } from 'bun';
+import FetchTemplateFactory from 'src/types/factory';
 
-export default class TransferService extends Singleton {
-  private factoryCID: string = '';
-
+class TransferService extends FetchTemplateFactory {
   constructor() {
     super();
-  }
-
-  public async getTransferFactoryId() {
-    if (this.factoryCID) return this.factoryCID;
-    const { offset } = await sdk.userLedger!.ledgerEnd();
-
-    const fetchedActiveContracts = await sdk.userLedger?.activeContracts({
-      offset,
-      parties: [admin.partyId],
-      templateIds: [CoinTransferFactory.templateId],
-    });
-
-    const activeContractId =
-      fetchedActiveContracts?.[0]?.contractEntry &&
-      LedgerController.getActiveContractCid(fetchedActiveContracts?.[0].contractEntry);
-
-    if (activeContractId) this.factoryCID = activeContractId;
-    else await this.createTransferFactory();
-    return this.factoryCID;
   }
 
   public async getTransferInstruction(cid: string) {
@@ -55,7 +34,22 @@ export default class TransferService extends Singleton {
     };
   }
 
-  private async createTransferFactory() {
+  protected override async fetchFactoryCID() {
+    const { offset } = await sdk.userLedger!.ledgerEnd();
+    const fetchedActiveContracts = await sdk.userLedger?.activeContracts({
+      offset,
+      parties: [admin.partyId],
+      templateIds: [CoinTransferFactory.templateId],
+    });
+
+    const activeContractId =
+      fetchedActiveContracts?.[0]?.contractEntry &&
+      LedgerController.getActiveContractCid(fetchedActiveContracts?.[0].contractEntry);
+
+    return activeContractId ?? '';
+  }
+
+  protected override async createFactory() {
     const proposal: WrappedCommand<'CreateCommand'> = {
       CreateCommand: {
         templateId: CoinTransferFactory.templateId,
@@ -78,6 +72,10 @@ export default class TransferService extends Singleton {
 
     const result = await sdk.userLedger?.getCreatedContractByUpdateId(signCompletionResult.updateId);
 
-    if (result?.contractId) this.factoryCID = result?.contractId;
+    return result?.contractId ?? '';
   }
 }
+
+const service = new TransferService();
+
+export default service;

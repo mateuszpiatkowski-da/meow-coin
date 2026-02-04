@@ -1,13 +1,12 @@
 import definition from '@token-standard/splice-api-token-transfer-instruction-v1/openapi/transfer-instruction-v1.yaml';
 import * as openapi from '@openapi-ts/transfer-instruction-v1';
 import OpenAPIBackend, { type Context } from 'openapi-backend';
-import TransferService from './service';
+import transferService from './service';
 
 const api = new OpenAPIBackend({ definition, quick: true });
-const service = TransferService.getInstance();
 
 const getTransferFactory = async (): Promise<openapi.TransferFactoryWithChoiceContext> => {
-  const factoryId = await service.getTransferFactoryId();
+  const factoryId = await transferService.getFactoryCID();
   return {
     factoryId,
     transferKind: 'offer',
@@ -19,7 +18,7 @@ const getTransferFactory = async (): Promise<openapi.TransferFactoryWithChoiceCo
 };
 
 const getTransferInstructionAcceptContext = async (ctx: Context): Promise<openapi.ChoiceContext> => {
-  const disclosedContract = await service.getTransferInstruction(ctx.request.params.transferInstructionId);
+  const disclosedContract = await transferService.getTransferInstruction(ctx.request.params.transferInstructionId);
   return {
     choiceContextData: {},
     disclosedContracts: [disclosedContract],
@@ -27,7 +26,7 @@ const getTransferInstructionAcceptContext = async (ctx: Context): Promise<openap
 };
 
 const getTransferInstructionRejectContext = async (ctx: Context): Promise<openapi.ChoiceContext> => {
-  const disclosedContract = await service.getTransferInstruction(ctx.request.params.transferInstructionId);
+  const disclosedContract = await transferService.getTransferInstruction(ctx.request.params.transferInstructionId);
   return {
     choiceContextData: {},
     disclosedContracts: [disclosedContract],
@@ -35,7 +34,7 @@ const getTransferInstructionRejectContext = async (ctx: Context): Promise<openap
 };
 
 const getTransferInstructionWithdrawContext = async (ctx: Context): Promise<openapi.ChoiceContext> => {
-  const disclosedContract = await service.getTransferInstruction(ctx.request.params.transferInstructionId);
+  const disclosedContract = await transferService.getTransferInstruction(ctx.request.params.transferInstructionId);
   return {
     choiceContextData: {},
     disclosedContracts: [disclosedContract],
