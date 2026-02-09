@@ -13,6 +13,7 @@ type DARType = {
 
 export class Initializer {
   private dar: DARType | null = null;
+
   public async init() {
     logger.info({ packageId }, 'Using .dar package');
 
