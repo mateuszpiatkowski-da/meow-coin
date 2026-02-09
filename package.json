@@ -12,7 +12,8 @@
     "generate:all": "rm -rf ./src/types/{daml-ts,openapi-ts} && bun daml:rebuild && bun generate:daml-ts && bun generate:openapi",
     "dev": "bun --watch src/index.ts",
     "helper:createTransferInstruction": "chmod +x ./scripts/helper/createTransferInstruction.ts && ./scripts/helper/createTransferInstruction.ts",
-    "helper:createAllocationInstruction": "chmod +x ./scripts/helper/createAllocationInstruction.ts && ./scripts/helper/createAllocationInstruction.ts"
+    "helper:createAllocationInstruction": "chmod +x ./scripts/helper/createAllocationInstruction.ts && ./scripts/helper/createAllocationInstruction.ts",
+    "helper:createAllocation": "chmod +x ./scripts/helper/createAllocation.ts && ./scripts/helper/createAllocation.ts"
   },
   "dependencies": {
     "@canton-network/core-ledger-client": "workspace:*",
