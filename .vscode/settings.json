@@ -9,5 +9,12 @@
   "[daml]": {
     "editor.wordWrap": "on",
     "editor.wordWrapColumn": 120
+  },
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  "terminal.integrated.profiles.osx": {
+    "zsh": {
+      "path": "/bin/zsh",
+      "args": ["-l"]
+    }
   }
 }

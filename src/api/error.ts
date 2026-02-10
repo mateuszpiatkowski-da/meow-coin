@@ -4,3 +4,10 @@ export const notFound = Response.json(
   },
   { status: 404 },
 );
+
+export const internalError = Response.json(
+  {
+    error: 'Internal Server Error',
+  },
+  { status: 500 },
+);
