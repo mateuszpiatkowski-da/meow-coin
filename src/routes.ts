@@ -19,15 +19,15 @@ const adaptBunRequest = (req: BunRequest): OpenAPIBackendRequest => {
 
 export default {
   '/registry/metadata/v1/*': async (req: BunRequest) => {
-    return Response.json(await metadataApi.handleRequest(adaptBunRequest(req)));
+    return await metadataApi.handleRequest(adaptBunRequest(req));
   },
   '/registry/transfer-instruction/v1/*': async (req: BunRequest) => {
-    return Response.json(await transferInstructionApi.handleRequest(adaptBunRequest(req)));
+    return await transferInstructionApi.handleRequest(adaptBunRequest(req));
   },
   '/registry/allocation-instruction/v1/*': async (req: BunRequest) => {
-    return Response.json(await allocationInstructionApi.handleRequest(adaptBunRequest(req)));
+    return await allocationInstructionApi.handleRequest(adaptBunRequest(req));
   },
   '/registry/allocations/v1/*': async (req: BunRequest) => {
-    return Response.json(await allocationApi.handleRequest(adaptBunRequest(req)));
+    return await allocationApi.handleRequest(adaptBunRequest(req));
   },
 } satisfies Serve.Routes<undefined, string>;

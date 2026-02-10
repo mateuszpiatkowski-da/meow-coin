@@ -1,13 +1,18 @@
-export const notFound = Response.json(
-  {
-    error: 'Not Found',
-  },
-  { status: 404 },
-);
+export const notFoundError = (reason?: string) =>
+  Response.json(
+    {
+      error: reason ?? 'Not Found',
+    },
+    { status: 404 },
+  );
 
-export const internalError = Response.json(
-  {
-    error: 'Internal Server Error',
-  },
-  { status: 500 },
-);
+export const internalError = (reason?: string) =>
+  Response.json(
+    {
+      error: reason ?? 'Internal Server Error',
+    },
+    { status: 500 },
+  );
+
+export const defaultNotFoundError = notFoundError();
+export const defaultInternalError = internalError();

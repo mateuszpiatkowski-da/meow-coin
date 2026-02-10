@@ -1,6 +1,6 @@
 import { OpenAPIBackend, type Context } from 'openapi-backend';
 import definition from '@token-standard/splice-api-token-metadata-v1/openapi/token-metadata-v1.yaml';
-import { notFound } from '../error';
+import { notFoundError, internalError, defaultNotFoundError } from '../error';
 import * as openapi from 'src/types/openapi-ts/token-metadata-v1';
 import admin from 'src/util/admin';
 
@@ -28,31 +28,43 @@ const instruments = [
   },
 ];
 
-const getRegistryInfo = async (): Promise<openapi.GetRegistryInfoResponse> => {
-  return {
-    adminId: admin.partyId,
-    supportedApis,
-  };
+const getRegistryInfo = async (): Promise<Response> => {
+  try {
+    return Response.json({
+      adminId: admin.partyId,
+      supportedApis,
+    } satisfies openapi.GetRegistryInfoResponse);
+  } catch (error) {
+    return internalError(`Failed to get registry info: ${error}`);
+  }
 };
 
-const listInstruments = (): openapi.ListInstrumentsResponse => {
-  return {
-    instruments,
-  };
+const listInstruments = (): Response => {
+  try {
+    return Response.json({
+      instruments,
+    } satisfies openapi.ListInstrumentsResponse);
+  } catch (error) {
+    return internalError(`Failed to list instruments: ${error}`);
+  }
 };
 
-const getInstrument = (ctx: Context) => {
-  const instrument = instruments.find((instrument) => instrument.id === ctx.request.params.instrumentId);
+const getInstrument = (ctx: Context): Response => {
+  try {
+    const instrument = instruments.find((instrument) => instrument.id === ctx.request.params.instrumentId);
 
-  if (!instrument) throw new Error(notFound.statusText);
-  return instrument;
+    if (!instrument) return notFoundError(`Instrument with id '${ctx.request.params.instrumentId}' not found`);
+    return Response.json(instrument satisfies openapi.Instrument);
+  } catch (error) {
+    return internalError(`Failed to get instrument: ${error}`);
+  }
 };
 
 api.register({
   getRegistryInfo,
   listInstruments,
   getInstrument,
-  notFound: () => notFound,
+  notFound: () => defaultNotFoundError,
 });
 
 await api.init();
