@@ -13,7 +13,7 @@ const server = serve({
   },
 });
 
-console.log(await sdk.auth.getAdminToken());
+logger.info({ adminToken: await sdk.auth.getAdminToken() }, `Admin Token for API auth:`);
 
 // Initialize prerequisites
 await initializer.init();
